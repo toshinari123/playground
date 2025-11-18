@@ -1,19 +1,14 @@
 use crate::{component::prelude::*, elements::column_element::ColumnElement, widget::prelude::*};
 
 pub fn column(children: impl IntoIterator<Item = Component>) -> Component {
-    let widgets = children.into_iter().collect::<Vec<_>>();
-    Widget::elemental((), widgets, propagate_msg, |this| {
-        let (did_rebuild, children): (Vec<_>, Vec<_>) = this
-            .children
-            .iter()
-            .map(|child| child.borrow_mut().create_element())
-            .unzip();
-        let did_any_child_rebuild = did_rebuild.into_iter().fold(false, |acc, e| acc || e);
-        (
-            did_any_child_rebuild,
-            Box::new(ColumnElement {
-                children,
-            }),
-        )
-    })
+    // remove this line below if Widget changed to use generic type Children
+    let children_vec = children.into_iter().collect::<Vec<_>>(); 
+    Widget::elemental(
+        (),
+        children_vec,
+        propagate_msg,
+        statelessly_childfully_create_element_functional(Box::new(move |children| {
+            Box::new(ColumnElement { children: children })
+        })),
+    )
 }

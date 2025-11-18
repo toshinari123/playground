@@ -15,7 +15,7 @@ use crate::{
 };
 
 pub mod prelude {
-    pub use super::{Widget, propagate_msg};
+    pub use super::{Widget, propagate_msg, statelessly_childfully_create_element_functional};
 }
 
 thread_local! {
@@ -46,7 +46,7 @@ pub struct Widget<State>
 {
     id: usize,
     pub state: State,
-    pub children: Children,
+    children: Children,
     prev: Option<Component>,
     needs_rebuild: bool,
     builder: Box<dyn Fn(&State) -> Component>,
@@ -58,7 +58,7 @@ impl<State> Widget<State>
 where
     State: 'static,
 {
-    pub fn stateful(
+    pub fn stateful( // CURRENTLY CHILDLESS
         state: State,
         on_message: impl Fn(&mut Self, &Message) -> MessageFlow + 'static,
         builder: impl Fn(&State) -> Component + 'static,
@@ -77,7 +77,7 @@ where
                     prev.borrow_mut().on_message(msg);
                 }
             }),
-            create_element: Rc::new(statefully_create_element),
+            create_element: Rc::new(statefully_childlessly_create_element),
         }))
     }
     pub fn elemental( // change to nonstateful? actually isnt this just stateful() above but assume
@@ -144,15 +144,32 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
                     prev.borrow_mut().on_message(msg);
                 }
             }),
-            create_element: Rc::new(statefully_create_element),
+            create_element: Rc::new(statefully_childlessly_create_element),
         }))
     }
 }
 
-fn statefully_create_element<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
+fn statefully_childlessly_create_element<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
     let (did_rebuild, widget) = this._build();
     let (did_elem_rebuild, element) = widget.borrow_mut().create_element();
     (did_rebuild || did_elem_rebuild, element)
+}
+
+pub fn statelessly_childfully_create_element_functional<T: 'static>
+    (element_creator: Box<dyn Fn(Vec<Box<dyn Element>>) -> Box<dyn Element>>) 
+    -> Box<dyn Fn(&mut Widget<T>) -> (bool, Box<dyn Element>)>
+{
+    Box::new(move |this| {
+        let (did_rebuilds, children_elems): (Vec<_>, Vec<_>) = this
+            .children
+            .iter()
+            .map(|child| child.borrow_mut().create_element())
+            .unzip();
+        (
+            did_rebuilds.iter().any(|&did_rebuild| did_rebuild),
+            element_creator(children_elems),
+        )
+    })
 }
 
 impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, TaskRet>> {
@@ -185,7 +202,7 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
                     prev.borrow_mut().on_message(msg);
                 }
             }),
-            create_element: Rc::new(statefully_create_element),
+            create_element: Rc::new(statefully_childlessly_create_element),
         }))
     }
 }

@@ -1,19 +1,14 @@
 use crate::{component::prelude::*, prelude::RowElement, widget::prelude::*};
 
 pub fn row(children: impl IntoIterator<Item = Component>) -> Component {
-    let widgets = children.into_iter().collect::<Vec<_>>();
-    Widget::elemental((), widgets, propagate_msg, move |this| {
-        let (did_rebuild, children): (Vec<_>, Vec<_>) = this
-            .children
-            .iter()
-            .map(|child| child.borrow_mut().create_element())
-            .unzip();
-        let did_any_child_rebuild = did_rebuild.into_iter().fold(false, |acc, e| acc || e);
-        (
-            did_any_child_rebuild,
-            Box::new(RowElement {
-                children,
-            }),
-        )
-    })
+    // remove this line below if Widget changed to use generic type Children
+    let children_vec = children.into_iter().collect::<Vec<_>>(); 
+    Widget::elemental(
+        (),
+        children_vec,
+        propagate_msg,
+        statelessly_childfully_create_element_functional(Box::new(move |children| {
+            Box::new(RowElement { children: children })
+        })),
+    )
 }
