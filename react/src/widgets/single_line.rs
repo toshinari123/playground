@@ -6,6 +6,7 @@ use crate::{
 pub fn single_line(s: String) -> Component {
     Widget::elemental(
         s,
+        vec![],
         |_, _| {},
         #[inline]
         |this| {

@@ -15,7 +15,7 @@ use crate::{
 };
 
 pub mod prelude {
-    pub use super::{Widget, propagate};
+    pub use super::{Widget, propagate_msg};
 }
 
 thread_local! {
@@ -30,9 +30,23 @@ pub fn uid() -> usize {
     })
 }
 
-pub struct Widget<State> {
+/*   for full imp use generic? on one hand most of the time its Vec on other hand if
+ *   really need to be generic will be annoying to change in the future
+
+pub struct Widget<State, Children>
+where
+    Children: IntoIterator<Item = Component>,
+{
+
+*/
+
+pub type Children = Vec<Component>;
+
+pub struct Widget<State>
+{
     id: usize,
     pub state: State,
+    pub children: Children,
     prev: Option<Component>,
     needs_rebuild: bool,
     builder: Box<dyn Fn(&State) -> Component>,
@@ -52,6 +66,7 @@ where
         Rc::new(RefCell::new(Widget {
             id: uid(),
             state: state,
+            children: vec![],
             prev: None,
             needs_rebuild: true,
             builder: Box::new(builder),
@@ -62,17 +77,21 @@ where
                     prev.borrow_mut().on_message(msg);
                 }
             }),
-            create_element: Rc::new(create_child),
+            create_element: Rc::new(statefully_create_element),
         }))
     }
-    pub fn elemental(
+    pub fn elemental( // change to nonstateful? actually isnt this just stateful() above but assume
+                      // set_state is never called like the panic wont panic cuz _build is not used 
+                      // here anyways (_build is used in create_child which is not used here)
         state: State,
+        children: Children,
         on_message: impl Fn(&mut Self, &Message) + 'static,
         create_element: impl Fn(&mut Self) -> (bool, Box<dyn Element>) + 'static,
     ) -> Component {
         Rc::new(RefCell::new(Widget {
             id: uid(),
             state: state,
+            children: children,
             prev: None,
             needs_rebuild: true,
             builder: Box::new(|_| panic!()),
@@ -109,6 +128,7 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
         Rc::new(RefCell::new(Widget {
             id: uid(),
             state: Task::Running(go(task)),
+            children: vec![],
             prev: None,
             needs_rebuild: true,
             builder: Box::new(builder),
@@ -124,15 +144,15 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
                     prev.borrow_mut().on_message(msg);
                 }
             }),
-            create_element: Rc::new(create_child),
+            create_element: Rc::new(statefully_create_element),
         }))
     }
 }
 
-fn create_child<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
+fn statefully_create_element<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
     let (did_rebuild, widget) = this._build();
-    let (did_child_rebuild, child_element) = widget.borrow_mut().create_element();
-    (did_rebuild || did_child_rebuild, child_element)
+    let (did_elem_rebuild, element) = widget.borrow_mut().create_element();
+    (did_rebuild || did_elem_rebuild, element)
 }
 
 impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, TaskRet>> {
@@ -143,15 +163,16 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
     ) -> Component {
         let (sender, receiver) = unbounded_channel();
         Rc::new(RefCell::new(Widget {
+            id: uid(),
             state: Stream {
                 task: Task::Running(go(generator(sender))),
                 receiver,
                 current: None,
             },
+            children: vec![],
             prev: None,
             needs_rebuild: true,
             builder: Box::new(builder),
-            id: uid(),
             on_message: Rc::new(move |this, msg| {
                 switch(msg).case(|&Tick(_)| {
                     if this.state.check() {
@@ -164,7 +185,7 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
                     prev.borrow_mut().on_message(msg);
                 }
             }),
-            create_element: Rc::new(create_child),
+            create_element: Rc::new(statefully_create_element),
         }))
     }
 }
@@ -184,8 +205,8 @@ impl<State> _Component for Widget<State> {
     }
 }
 
-pub fn propagate(this: &mut Widget<Vec<Component>>, msg: &Message) {
-    this.state
+pub fn propagate_msg<State> (this: &mut Widget<State>, msg: &Message) {
+    this.children
         .iter()
         .for_each(|child| child.borrow_mut().on_message(msg));
 }
