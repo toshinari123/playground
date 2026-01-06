@@ -1,10 +1,10 @@
-use crate::{component::prelude::*, elements::column_element::ColumnElement, widget::prelude::*};
+use crate::{component::prelude::*, prelude::ColumnElement, widget::prelude::*, message::MessageFlow};
 
 pub fn column(children: impl IntoIterator<Item = Component>) -> Component {
     let widgets = children.into_iter().collect::<Vec<_>>();
-    Widget::elemental(widgets, propagate, |this| {
+    Widget::containerlike(widgets, |_, _| MessageFlow::Propagate, |this| {
         let (did_rebuild, children): (Vec<_>, Vec<_>) = this
-            .state
+            .children
             .iter()
             .map(|child| child.borrow_mut().create_element())
             .unzip();
