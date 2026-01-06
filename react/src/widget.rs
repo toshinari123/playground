@@ -31,6 +31,7 @@ pub fn uid() -> usize {
 pub struct Widget<State> {
     id: usize,
     pub state: State,
+    pub children: Vec<Component>,
     builder: Box<dyn Fn(&State) -> Component>,
     on_message: Rc<dyn Fn(&mut Self, &Message)>,
     create_element: Rc<dyn Fn(&mut Self) -> (bool, Box<dyn Element>)>,
@@ -42,11 +43,34 @@ impl<State> Debug for Widget<State> {
     }
 }
 
+impl Widget<()> { // stateless
+    pub fn containerlike( // have children, no state, auto propagate
+        children: Vec<Component>,
+        on_message: impl Fn(&mut Self, &Message) -> MessageFlow + 'static,
+        create_element: impl Fn(&mut Self) -> (bool, Box<dyn Element>) + 'static,
+    ) -> Component {
+        Rc::new(RefCell::new(Widget {
+            id: uid(),
+            state: (),
+            children,
+            builder: Box::new(|_| panic!()),
+            on_message: Rc::new(move |this, msg| {
+                let flow = on_message(this, msg);
+                match flow {
+                    MessageFlow::Propagate => propagate(this, msg),
+                    MessageFlow::Intercept => {}
+                }
+            }),
+            create_element: Rc::new(create_element),
+        }))
+    }
+}
+
 impl<State> Widget<State>
 where
     State: 'static,
 {
-    pub fn stateful(
+    pub fn stateful( // no children? (for now)
         state: State,
         on_message: impl Fn(&mut Self, &Message) -> MessageFlow + 'static,
         builder: impl Fn(&State) -> Component + 'static,
@@ -54,17 +78,15 @@ where
         Rc::new(RefCell::new(Widget {
             id: uid(),
             state: state,
+            children: Vec::new(),
             builder: Box::new(builder),
             on_message: Rc::new(move |this, msg| {
-                if let Propagate = on_message(this, msg) {
-                    // Messages propagate through the widget tree naturally
-                    // since we always rebuild with new widgets
-                }
+                on_message(this, msg); // no children for now
             }),
-            create_element: Rc::new(create_child),
+            create_element: Rc::new(create_child), // currently just roundabout way to create elem
         }))
     }
-    pub fn elemental(
+    pub fn elemental( // no children
         state: State,
         on_message: impl Fn(&mut Self, &Message) + 'static,
         create_element: impl Fn(&mut Self) -> (bool, Box<dyn Element>) + 'static,
@@ -72,6 +94,7 @@ where
         Rc::new(RefCell::new(Widget {
             id: uid(),
             state: state,
+            children: Vec::new(),
             builder: Box::new(|_| panic!()),
             on_message: Rc::new(on_message),
             create_element: Rc::new(create_element),
@@ -96,6 +119,7 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
         Rc::new(RefCell::new(Widget {
             id: uid(),
             state: Task::Running(go(task)),
+            children: Vec::new(),
             builder: Box::new(builder),
             on_message: Rc::new(move |this, msg| {
                 switch(msg).case(|&Tick(_)| {
@@ -103,9 +127,7 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
                         this.set_state(|_| {});
                     }
                 });
-                if let Propagate = on_message(this, msg) {
-                    // Messages propagate through the widget tree naturally
-                }
+                on_message(this, msg); // no children for now
             }),
             create_element: Rc::new(create_child),
         }))
@@ -131,6 +153,7 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
                 receiver,
                 current: None,
             },
+            children: Vec::new(),
             builder: Box::new(builder),
             id: uid(),
             on_message: Rc::new(move |this, msg| {
@@ -139,9 +162,7 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
                         this.set_state(|_| {});
                     }
                 });
-                if let Propagate = on_message(this, msg) {
-                    // Messages propagate through the widget tree naturally
-                }
+                on_message(this, msg); // no children for now
             }),
             create_element: Rc::new(create_child),
         }))
@@ -163,8 +184,9 @@ impl<State> _Component for Widget<State> {
     }
 }
 
-pub fn propagate(this: &mut Widget<Vec<Component>>, msg: &Message) {
-    this.state
+pub fn propagate<State>(this: &mut Widget<State>, msg: &Message) {
+    this.children
         .iter()
         .for_each(|child| child.borrow_mut().on_message(msg));
 }
+
