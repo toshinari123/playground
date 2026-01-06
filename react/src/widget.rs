@@ -26,8 +26,6 @@ pub fn uid() -> usize {
 pub struct Widget<State> {
     id: usize,
     pub state: State,
-    prev: Option<Component>,
-    needs_rebuild: bool,
     builder: Box<dyn Fn(&State) -> Component>,
     on_message: Rc<dyn Fn(&mut Self, &Message)>,
     create_element: Rc<dyn Fn(&mut Self) -> (bool, Box<dyn Element>)>,
@@ -35,12 +33,7 @@ pub struct Widget<State> {
 
 impl<State> Debug for Widget<State> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Contains prev: {}; Child: {:?}",
-            self.prev.is_some(),
-            self.prev
-        )
+        write!(f, "Widget {{ id: {} }}", self.id)
     }
 }
 
@@ -56,14 +49,11 @@ where
         Rc::new(RefCell::new(Widget {
             id: uid(),
             state: state,
-            prev: None,
-            needs_rebuild: true,
             builder: Box::new(builder),
             on_message: Rc::new(move |this, msg| {
-                if let Propagate = on_message(this, msg)
-                    && let Some(prev) = &this.prev
-                {
-                    prev.borrow_mut().on_message(msg);
+                if let Propagate = on_message(this, msg) {
+                    // Messages propagate through the widget tree naturally
+                    // since we always rebuild with new widgets
                 }
             }),
             create_element: Rc::new(create_child),
@@ -77,29 +67,18 @@ where
         Rc::new(RefCell::new(Widget {
             id: uid(),
             state: state,
-            prev: None,
-            needs_rebuild: true,
             builder: Box::new(|_| panic!()),
             on_message: Rc::new(on_message),
             create_element: Rc::new(create_element),
         }))
     }
     fn _build(&mut self) -> (bool, Component) {
-        if !self.needs_rebuild
-            && let Some(prev) = &self.prev
-        {
-            (false, prev.clone())
-        } else {
-            let new_widget = (self.builder)(&self.state);
-            self.prev = Some(new_widget.clone());
-            self.needs_rebuild = false;
-            (true, new_widget)
-        }
+        let new_widget = (self.builder)(&self.state);
+        (true, new_widget)
     }
     #[inline]
     pub fn set_state(&mut self, f: impl FnOnce(&mut State)) {
         f(&mut self.state);
-        self.needs_rebuild = true;
     }
 }
 
@@ -112,8 +91,6 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
         Rc::new(RefCell::new(Widget {
             id: uid(),
             state: Task::Running(go(task)),
-            prev: None,
-            needs_rebuild: true,
             builder: Box::new(builder),
             on_message: Rc::new(move |this, msg| {
                 switch(msg).case(|&Tick(_)| {
@@ -121,10 +98,8 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
                         this.set_state(|_| {});
                     }
                 });
-                if let Propagate = on_message(this, msg)
-                    && let Some(prev) = &this.prev
-                {
-                    prev.borrow_mut().on_message(msg);
+                if let Propagate = on_message(this, msg) {
+                    // Messages propagate through the widget tree naturally
                 }
             }),
             create_element: Rc::new(create_child),
@@ -133,9 +108,9 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
 }
 
 fn create_child<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
-    let (did_rebuild, widget) = this._build();
+    let (_, widget) = this._build();
     let (did_child_rebuild, child_element) = widget.borrow_mut().create_element();
-    (did_rebuild || did_child_rebuild, child_element)
+    (true || did_child_rebuild, child_element)
 }
 
 impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, TaskRet>> {
@@ -151,8 +126,6 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
                 receiver,
                 current: None,
             },
-            prev: None,
-            needs_rebuild: true,
             builder: Box::new(builder),
             id: uid(),
             on_message: Rc::new(move |this, msg| {
@@ -161,10 +134,8 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
                         this.set_state(|_| {});
                     }
                 });
-                if let Propagate = on_message(this, msg)
-                    && let Some(prev) = &this.prev
-                {
-                    prev.borrow_mut().on_message(msg);
+                if let Propagate = on_message(this, msg) {
+                    // Messages propagate through the widget tree naturally
                 }
             }),
             create_element: Rc::new(create_child),
