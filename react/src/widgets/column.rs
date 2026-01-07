@@ -2,7 +2,7 @@ use crate::{component::prelude::*, prelude::ColumnElement, widget::prelude::*, m
 
 pub fn column(children: impl IntoIterator<Item = Component>) -> Component {
     let widgets = children.into_iter().collect::<Vec<_>>();
-    Widget::containerlike(widgets, |_, _| MessageFlow::Propagate, |this| {
+    Widget::containerlike((), widgets, |this: &mut Widget<(), dyn _Component>, _| MessageFlow::Propagate, |this| {
         let (did_rebuild, children): (Vec<_>, Vec<_>) = this
             .children
             .iter()
