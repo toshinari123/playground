@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub mod prelude {
-    pub use super::{Widget, propagate};
+    pub use super::{Widget, propagate, Focusable, FocusableComponent};
 }
 
 thread_local! {
@@ -28,22 +28,29 @@ pub fn uid() -> usize {
     })
 }
 
-pub struct Widget<State> {
+pub struct Widget<State, C = dyn _Component>
+where
+    C: _Component + ?Sized,
+{
     id: usize,
-    pub state: State,
-    pub children: Vec<Component>,
-    builder: Box<dyn Fn(&State) -> Component>,
+    pub state: State, // pub: can modify without set state
+    pub children: Vec<Rc<RefCell<C>>>, // is pub bad?
+    needs_rebuild: bool,
+    builder: Box<dyn Fn(&State) -> Rc<RefCell<C>>>,
     on_message: Rc<dyn Fn(&mut Self, &Message)>,
     create_element: Rc<dyn Fn(&mut Self) -> (bool, Box<dyn Element>)>,
 }
 
-impl<State> Debug for Widget<State> {
+impl<State, C> Debug for Widget<State, C>
+where
+    C: _Component + ?Sized,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Widget {{ id: {} }}", self.id)
     }
 }
 
-impl Widget<()> { // stateless
+/*impl Widget<()> { // stateless
     pub fn containerlike( // have children, no state, auto propagate
         children: Vec<Component>,
         on_message: impl Fn(&mut Self, &Message) -> MessageFlow + 'static,
@@ -53,6 +60,7 @@ impl Widget<()> { // stateless
             id: uid(),
             state: (),
             children,
+            needs_rebuild: false,
             builder: Box::new(|_| panic!()),
             on_message: Rc::new(move |this, msg| {
                 let flow = on_message(this, msg);
@@ -64,9 +72,38 @@ impl Widget<()> { // stateless
             create_element: Rc::new(create_element),
         }))
     }
-}
+}*/
 
-impl<State> Widget<State>
+impl<State, C> Widget<State, C>
+where
+    State: 'static,
+    C: _Component + ?Sized + 'static
+{
+    pub fn containerlike( // have children, have state, auto propagate
+        state: State,
+        children: Vec<Rc<RefCell<C>>>,
+        on_message: impl Fn(&mut Self, &Message) -> MessageFlow + 'static,
+        create_element: impl Fn(&mut Self) -> (bool, Box<dyn Element>) + 'static,
+    ) -> Component {
+        let widget = Widget {
+            id: uid(),
+            state,
+            children,
+            needs_rebuild: false,
+            builder: Box::new(|_| panic!()),
+            on_message: Rc::new(move |this, msg| {
+                let flow = on_message(this, msg);
+                match flow {
+                    MessageFlow::Propagate => propagate(this, msg),
+                    MessageFlow::Intercept => {}
+                }
+            }),
+            create_element: Rc::new(create_element),
+        };
+        Rc::new(RefCell::new(widget)) as Component
+    }
+}
+impl<State> Widget<State, dyn _Component>
 where
     State: 'static,
 {
@@ -79,6 +116,7 @@ where
             id: uid(),
             state: state,
             children: Vec::new(),
+            needs_rebuild: false,
             builder: Box::new(builder),
             on_message: Rc::new(move |this, msg| {
                 on_message(this, msg); // no children for now
@@ -95,6 +133,7 @@ where
             id: uid(),
             state: state,
             children: Vec::new(),
+            needs_rebuild: false,
             builder: Box::new(|_| panic!()),
             on_message: Rc::new(on_message),
             create_element: Rc::new(create_element),
@@ -107,6 +146,7 @@ where
     #[inline]
     pub fn set_state(&mut self, f: impl FnOnce(&mut State)) {
         f(&mut self.state);
+        self.needs_rebuild = true;
     }
 }
 
@@ -120,6 +160,7 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
             id: uid(),
             state: Task::Running(go(task)),
             children: Vec::new(),
+            needs_rebuild: false,
             builder: Box::new(builder),
             on_message: Rc::new(move |this, msg| {
                 switch(msg).case(|&Tick(_)| {
@@ -154,6 +195,7 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
                 current: None,
             },
             children: Vec::new(),
+            needs_rebuild: false,
             builder: Box::new(builder),
             id: uid(),
             on_message: Rc::new(move |this, msg| {
@@ -169,7 +211,10 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
     }
 }
 
-impl<State> _Component for Widget<State> {
+impl<State, C> _Component for Widget<State, C>
+where
+    C: _Component + ?Sized,
+{
     #[inline]
     fn id(&self) -> usize {
         self.id
@@ -182,11 +227,36 @@ impl<State> _Component for Widget<State> {
     fn on_message(&mut self, event: &Message) {
         (self.on_message.clone())(self, event);
     }
+    //#[inline]
+    //fn needs_rebuild(&mut self) -> bool {
+    //    self.needs_rebuild
+    //}
 }
 
-pub fn propagate<State>(this: &mut Widget<State>, msg: &Message) {
+pub fn propagate<State, C>(this: &mut Widget<State, C>, msg: &Message)
+where
+    C: _Component + ?Sized,
+{
     this.children
         .iter()
         .for_each(|child| child.borrow_mut().on_message(msg));
 }
 
+// ------------- focus ------------------
+
+pub trait Focusable {
+    fn create_focused_element(&mut self) -> (bool, Box<dyn Element>);
+}
+
+pub trait FocusableComponent: _Component + Focusable {}   // need for it has error when dyn _Component + Focusable
+
+impl<State> Widget<State, dyn FocusableComponent>  // find how to not do this every time
+where
+    State: 'static,
+{
+    #[inline]
+    pub fn set_state(&mut self, f: impl FnOnce(&mut State)) {
+        f(&mut self.state);
+        self.needs_rebuild = true;
+    }
+}
