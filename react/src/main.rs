@@ -53,6 +53,16 @@ fn todo() -> Component { // actually a containerlike() with focus AND childpersi
                 KeyCode::Tab => this.set_state(|state| state.0 = (state.0+1).rem_euclid(state.1)),
                 KeyCode::BackTab => this.set_state(|state| state.0 = (state.0+state.1-1).rem_euclid(state.1)),
                 KeyCode::Enter => {},
+                KeyCode::Char('+') => {
+                    eprintln!("todo received addtask");
+                    this.children.push(
+                        Rc::new(RefCell::new(CustomTextField{
+                            inner_text_field: text_field("new").0,
+                            on_enter: Box::new(|| {}),
+                        }))
+                    );
+                    this.set_state(|state| state.1 = state.1+1);
+                },
                 other => {
                     eprintln!("todo received other keypress");
                     this.children[this.state.0].borrow_mut().on_message(msg);
