@@ -23,32 +23,45 @@ fn col_of_animated_char() -> Component {
     }); Intercept}, |&no| column((0..no).map(|_| animated_char())))
 }
 
+enum TodoEvent {
+    AddTask,
+}
 
 fn todo() -> Component { // actually a containerlike() with focus AND childpersistence logic; TODO factor the 2 logics out
-    Widget::<usize, dyn FocusableComponent>::containerlike(
-        0,
+    Widget::<(usize, usize), dyn FocusableComponent>::containerlike(
+        (0,1),
         vec![Rc::new(RefCell::new(CustomTextField{
-                        inner_text_field: text_field("input").0,
-                        on_enter: Box::new(|| {}),
-                    }))],
+            inner_text_field: text_field("input").0,
+            on_enter: Box::new(|| send(TodoEvent::AddTask)),
+        }))],
         |this, msg| {
-            switch(msg).case(|event: &KeyEvent| match event.code {
-                KeyCode::Tab => this.set_state(|state| *state += 1),
-                KeyCode::Char('+') => this.children.push(
-                    Rc::new(RefCell::new(CustomTextField{
-                        inner_text_field: text_field("new").0,
-                        on_enter: Box::new(|| {}),
-                    }))
-                ),
+            let msg2 = msg.clone();
+            switch(msg).case(|event: &TodoEvent| {
+                    eprintln!("todo received addtask case");
+                match event {
+                TodoEvent::AddTask => {
+                    eprintln!("todo received addtask");
+                    this.children.push(
+                        Rc::new(RefCell::new(CustomTextField{
+                            inner_text_field: text_field("new").0,
+                            on_enter: Box::new(|| {}),
+                        }))
+                    );
+                    this.set_state(|state| state.1 = state.1+1);
+                }
+            }}).case(|event: &KeyEvent| match event.code {
+                KeyCode::Tab => this.set_state(|state| state.0 = (state.0+1).rem_euclid(state.1)),
+                KeyCode::BackTab => this.set_state(|state| state.0 = (state.0+state.1-1).rem_euclid(state.1)),
+                KeyCode::Enter => {},
                 other => {
-                    let msg: Box<dyn Any> = Box::new(other);
-                    this.children[this.state % this.children.len()].borrow_mut().on_message(&msg);
+                    eprintln!("todo received other keypress");
+                    this.children[this.state.0].borrow_mut().on_message(msg);
                 }
             });
             Intercept
         }, 
         |this| {
-            let f = this.state % this.children.len();
+            let f = this.state.0;
             let mut did_any_child_rebuild = false;
             let mut child_elements = Vec::with_capacity(this.children.len());
             for (i, child) in this.children.iter().enumerate() {
@@ -95,14 +108,16 @@ impl _Component for CustomTextField {
     //fn needs_rebuild(&mut self) -> bool {
     //    self.inner_text_field.borrow_mut().needs_rebuild()
     //}
-    fn on_message(&mut self, event: &Message) {
-        switch(event).case(|event: &KeyEvent| match event.code {
+    fn on_message(&mut self, msg: &Message) {
+        //if let Some(event) = msg.downcast_ref::<KeyCode>() {
+        switch(msg).case(|event: &KeyEvent| match event.code {
             KeyCode::Enter => (self.on_enter)(),
             other => {
-                let msg: Box<dyn Any> = Box::new(other);
-                self.inner_text_field.borrow_mut().on_message(&msg);
+                eprintln!("customtextefield received other keypress");
+                self.inner_text_field.borrow_mut().on_message(msg);
             }
         });
+    //}
     }
 }
 
