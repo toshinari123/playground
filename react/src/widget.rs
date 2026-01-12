@@ -97,6 +97,11 @@ where
         };
         Rc::new(RefCell::new(widget)) as Component
     }
+    pub fn get_and_reset_needs_rebuild(&mut self) -> bool { 
+        let c = self.needs_rebuild;
+        self.needs_rebuild = false;
+        c
+    }
 }
 impl<State> Widget<State, dyn _Component>
 where
@@ -136,7 +141,11 @@ where
     }
     fn _build(&mut self) -> (bool, Component) {
         let new_widget = (self.builder)(&self.state);
-        (true, new_widget)
+        if self.needs_rebuild {
+            self.needs_rebuild = false;
+            return (true, new_widget);
+        }
+        (false, new_widget)
     }
     #[inline]
     pub fn set_state(&mut self, f: impl FnOnce(&mut State)) {
@@ -170,10 +179,11 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
     }
 }
 
+//THIS IS NOT CHILD
 fn create_child<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
-    let (_, widget) = this._build();
+    let (needs_rebuild, widget) = this._build();
     let (did_child_rebuild, child_element) = widget.borrow_mut().create_element();
-    (true || did_child_rebuild, child_element)
+    (needs_rebuild, child_element)
 }
 
 impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, TaskRet>> {

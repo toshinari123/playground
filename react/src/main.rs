@@ -1,21 +1,27 @@
 use std::io::Result;
 
-use crossterm::event::{KeyCode, KeyEvent};
+//use crossterm::event::{KeyCode, KeyEvent};
 use react::prelude::*;
 use react::widgets::streamed_counter::streamed_counter;
 use crossterm::event::{KeyEvent, KeyCode};
 use stdext::prelude::*;
 use std::{cell::RefCell, fmt::Debug, ops::RangeFrom, rc::Rc, any::Any};
 
+/*
 
-fn main() -> Result<()> {
-    /*render(row([
-        column([streamed_counter(), text_field("").0, animated_char()]),
-        column([text_field("").0, download("https://www.rust-lang.org")]),
+    render(row([
+        column([
+            streamed_counter(), 
+            text_field("").0, 
+            animated_char()
+        ]),
+        column([
+            text_field("").0,
+            download("https://www.rust-lang.org")
+        ]),
         col_of_animated_char(),
-    ]))*/
-    render(todo())
-}
+    ]))
+
 
 fn col_of_animated_char() -> Component {
     Widget::stateful(1, |this, msg| {switch(msg).case(|event: &KeyEvent| match event.code {
@@ -24,40 +30,43 @@ fn col_of_animated_char() -> Component {
     }); Intercept}, |&no| column((0..no).map(|_| animated_char())))
 }
 
+*/
+
+fn main() -> Result<()> {
+    render(todo())
+}
+
 enum TodoEvent {
-    AddTask,
+    AddTask(String),
 }
 
 fn todo() -> Component { // actually a containerlike() with focus AND childpersistence logic; TODO factor the 2 logics out
+    let (c, t) = text_field("type here to make new task...");
     Widget::<(usize, usize), dyn FocusableComponent>::containerlike(
         (0,1),
         vec![Rc::new(RefCell::new(CustomTextField{
-            inner_text_field: text_field("input").0,
-            on_enter: Box::new(|| send(TodoEvent::AddTask)),
+            text_field: c,
+            text: t.clone(),
+            on_enter: Box::new(|this| send(TodoEvent::AddTask(this.text.borrow().to_string()))),
         }))],
         |this, msg| {
             let msg2 = msg.clone();
-            switch(msg).case(|event: &TodoEvent| {
-                    eprintln!("todo received addtask case");
-                match event {
-                TodoEvent::AddTask => {
-                    eprintln!("todo received addtask");
+            switch(msg).case(|event: &TodoEvent| match event {
+                TodoEvent::AddTask(initial_task_text) => {
+                    let (c, t) = text_field(initial_task_text);
                     this.children.push(
                         Rc::new(RefCell::new(CustomTextField{
-                            inner_text_field: text_field("new").0,
-                            on_enter: Box::new(|| {}),
+                            text_field: c,
+                            text: t,
+                            on_enter: Box::new(|this| {}),
                         }))
                     );
                     this.set_state(|state| state.1 = state.1+1);
                 }
-            }}).case(|event: &KeyEvent| match event.code {
+            }).case(|event: &KeyEvent| match event.code {
                 KeyCode::Tab => this.set_state(|state| state.0 = (state.0+1).rem_euclid(state.1)),
                 KeyCode::BackTab => this.set_state(|state| state.0 = (state.0+state.1-1).rem_euclid(state.1)),
-                KeyCode::Enter => {},
-                other => {
-                    eprintln!("todo received other keypress");
-                    this.children[this.state.0].borrow_mut().on_message(msg);
-                }
+                _ => this.children[this.state.0].borrow_mut().on_message(msg),
             });
             Intercept
         }, 
@@ -74,18 +83,28 @@ fn todo() -> Component { // actually a containerlike() with focus AND childpersi
                 did_any_child_rebuild = did_any_child_rebuild || did_rebuild;
                 child_elements.push(elem);
             }
-            let element = Box::new(BottomColumnElement {
+            // Split child_elements into footer (first) and main (rest)
+            let mut child_elements = child_elements;
+            let footer = child_elements.remove(0);
+            let main = Box::new(ColumnElement{
                 children: child_elements,
-                footer_height: 1,
             });
-            (did_any_child_rebuild, element)
+            
+            let element = Box::new(FooterMainElement {
+                footer,
+                main,
+                footer_height: 1,
+                box_main: true,
+            });
+            (this.get_and_reset_needs_rebuild() || did_any_child_rebuild, element)
         }
     )
 }
 
 struct CustomTextField { // Focusable and _Component
-    inner_text_field: Component,
-    on_enter: Box<dyn Fn() -> ()>, 
+    text_field: Component,
+    text: Rc<RefCell<String>>,
+    on_enter: Box<dyn Fn(&Self) -> ()>, 
 }
 
 impl Debug for CustomTextField {
@@ -96,36 +115,30 @@ impl Debug for CustomTextField {
 
 impl _Component for CustomTextField {
     fn id(&self) -> usize {
-        self.inner_text_field.borrow().id()
+        self.text_field.borrow().id()
     }
     fn create_element(&mut self) -> (bool, Box<dyn Element>) {
-        let (_, e1) = text(" - ").borrow_mut().create_element();
-        let (b2, e2) = self.inner_text_field.borrow_mut().create_element();
+        let (_, e1) = text(" -").borrow_mut().create_element();
+        let (b2, e2) = self.text_field.borrow_mut().create_element();
+        //eprintln!("customtextfield createelem {}", b2);
         (b2, Box::new(LeftRowElement {
             children: vec![e1, e2],
             sidebar_width: 3,
         }))
     }
-    //fn needs_rebuild(&mut self) -> bool {
-    //    self.inner_text_field.borrow_mut().needs_rebuild()
-    //}
     fn on_message(&mut self, msg: &Message) {
-        //if let Some(event) = msg.downcast_ref::<KeyCode>() {
         switch(msg).case(|event: &KeyEvent| match event.code {
-            KeyCode::Enter => (self.on_enter)(),
-            other => {
-                eprintln!("customtextefield received other keypress");
-                self.inner_text_field.borrow_mut().on_message(msg);
-            }
+            KeyCode::Enter => (self.on_enter)(self), //TODO: on_enter should prolly return MessageType
+            other => self.text_field.borrow_mut().on_message(msg),
         });
-    //}
     }
 }
 
 impl Focusable for CustomTextField {
     fn create_focused_element(&mut self) -> (bool, Box<dyn Element>) {
-        let (_, e1) = text("-> ").borrow_mut().create_element();
-        let (b2, e2) = self.inner_text_field.borrow_mut().create_element();
+        let (_, e1) = text("->").borrow_mut().create_element();
+        let (b2, e2) = self.text_field.borrow_mut().create_element();
+        //eprintln!("customtextfield createfocusedelem {}", b2);
         (b2, Box::new(LeftRowElement {
             children: vec![e1, e2],
             sidebar_width: 3,

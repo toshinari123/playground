@@ -1,4 +1,4 @@
-use crate::prelude::{DisplayList, Element, Frame, Operation, Point, Size};
+use crate::prelude::{DisplayList, Element, Operation, Point, Size};
 
 pub mod prelude {
     pub use super::BottomColumnElement;

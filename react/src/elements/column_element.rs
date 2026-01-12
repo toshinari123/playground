@@ -10,6 +10,9 @@ pub struct ColumnElement {
 
 impl Element for ColumnElement {
     fn draw(&self, constraint: Size, display_list: &mut DisplayList) {
+        if self.children.is_empty() {
+            return;
+        }
         let child_height = constraint.y as usize / self.children.len();
         let mut y_offset = 0;
         for child in &self.children {
