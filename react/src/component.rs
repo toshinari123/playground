@@ -3,7 +3,7 @@ use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use crate::{element::Element, prelude::Message};
 
 pub mod prelude {
-    pub use super::{_Component, Component};
+    pub use super::{_Component, Component, StaticComponent};
 }
 
 pub trait _Component: Debug {
@@ -13,3 +13,4 @@ pub trait _Component: Debug {
 }
 
 pub type Component = Rc<RefCell<dyn _Component>>;
+pub type StaticComponent = Rc<RefCell<dyn _Component + 'static>>;
