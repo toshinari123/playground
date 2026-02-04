@@ -76,6 +76,34 @@ where
         }))
     }
     
+    pub fn stateful_container(
+        state: State,
+        on_message: impl Fn(&mut Self, &Message) -> MessageFlow + 'static,
+        builder: impl Fn(&State) -> HashMap<String, Component> + 'static,
+        create_element: impl Fn(&mut Self, Vec<(String, Box<dyn Element>)>) -> (bool, Box<dyn Element>) + 'static,
+    ) -> Component {
+        let id = uid();
+        // Register widget in tree (no parent yet, will be set when added as child)
+        // tree::register(id, None);
+        
+        Rc::new(RefCell::new(Widget {
+            id,
+            state: state,
+            children: HashMap::new(),
+            needs_rebuild: true,
+            builder: Box::new(builder),
+            on_message: Rc::new(move |this, msg| {
+                if let Propagate = on_message(this, msg) {
+                    // Propagate to all children
+                    for child in this.children.values() {
+                        child.borrow_mut().on_message(msg);
+                    }
+                }
+            }),
+            create_element: Rc::new(create_children(create_element)),
+        }))
+    }
+    
     pub fn elemental(
         state: State,
         on_message: impl Fn(&mut Self, &Message) + 'static,
@@ -212,16 +240,7 @@ fn reconcile_children(
             let old_id = old_child.borrow().id();
             let new_id = new_child.borrow().id();
             
-            if old_id == new_id {
-                // Same widget ID, reuse it
                 updated_children.insert(key.clone(), old_child);
-            } else {
-                // Different widget ID but same key
-                // This happens when builder creates a new widget (e.g., text_cursor with new text)
-                // Use the new widget to ensure correct state
-                did_rebuild = true;
-                updated_children.insert(key.clone(), new_child.clone());
-            }
             
             // Update tree registry with the child we're actually using
             let child_id = updated_children.get(&key).unwrap().borrow().id();
@@ -250,14 +269,14 @@ fn create_child<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
     let (did_build, new_children) = this._build();
     
     // Reconcile children
-    let (did_reconcile, reconciled_children) = reconcile_children(
-        this.id,
-        &mut this.children,
-        new_children,
-    );
+    // let (did_reconcile, reconciled_children) = reconcile_children(
+    //     this.id,
+    //     &mut this.children,
+    //     new_children,
+    // );
     
     // Update widget's children
-    this.children = reconciled_children;
+    this.children = new_children;
     
     // Create elements for all children
     let mut child_elements = Vec::new();
@@ -271,8 +290,46 @@ fn create_child<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
     
     // For now, we'll return a simple container element
     // In a real implementation, this would create the appropriate element type
-    let did_any_rebuild = did_build || did_reconcile || any_child_rebuilt;
+    let did_any_rebuild = did_build || any_child_rebuilt;
     (did_any_rebuild, Box::new(SimpleContainer { children: child_elements }))
+}
+
+fn create_children<T, F>(create_element: F) -> impl Fn(&mut Widget<T>) -> (bool, Box<dyn Element>)
+where
+    T: 'static,
+    F: Fn(&mut Widget<T>, Vec<(String, Box<dyn Element>)>) -> (bool, Box<dyn Element>) + 'static,
+{
+    move |this: &mut Widget<T>| {
+        let (did_build, new_children) = this._build();
+        
+        // Reconcile children
+        let (did_reconcile, reconciled_children) = reconcile_children(
+            this.id,
+            &mut this.children,
+            new_children,
+        );
+        
+        // Update widget's children
+        this.children = reconciled_children;
+        
+        // Create elements for all children
+        let mut child_elements = Vec::new();
+        let mut any_child_rebuilt = false;
+        
+        for (key, child) in &this.children {
+            let (child_did_rebuild, child_element) = child.borrow_mut().create_element();
+            child_elements.push((key.clone(), child_element));
+            any_child_rebuilt = any_child_rebuilt || child_did_rebuild;
+        }
+        child_elements.sort_by(|(a, _), (c, _)| a.cmp(c));
+        
+        // Call the custom create_element with child_elements
+        let (custom_did_rebuild, custom_element) = create_element(this, child_elements);
+        
+        // Combine rebuild flags
+        let did_any_rebuild = did_build || did_reconcile || any_child_rebuilt || custom_did_rebuild;
+        (did_any_rebuild, custom_element)
+    }
 }
 
 /// Simple container element for demonstration
