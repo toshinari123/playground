@@ -6,6 +6,7 @@ pub mod download;
 pub mod fast_counter;
 pub mod number;
 pub mod row;
+pub mod scrollable;
 pub mod single_char;
 pub mod single_line;
 pub mod streamed_counter;
@@ -20,5 +21,6 @@ pub mod prelude {
         download::download, fast_counter::fast_counter, number::number, row::row,
         single_char::single_char, single_line::single_line, text::text, text_cursor::text_cursor,
         text_field::text_field, timer::timer,
+        scrollable::scrollable,
     };
 }

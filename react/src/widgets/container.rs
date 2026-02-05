@@ -1,11 +1,22 @@
 use crate::{component::prelude::*, elements::column_element::ColumnElement, widget::prelude::*};
 
-// Takes any iterable of Components (could be vec, array, etc.)
-// Returns a single Component that represents the column
-pub fn column(children: impl IntoIterator<Item = Component>) -> Component {
+/**
+Container:
+A single-child layout widget
 
-    // Converts the iterable into a concrete Vec<Component> to store all children.
-    let widgets = children.into_iter().collect::<Vec<_>>();
+properties:
+- alignment: Alignment enum (Start, Center, End, Stretch)
+- padding: u16 (number of spaces around the child)  
+- margin: u16 (number of spaces outside the border)
+- border: bool (whether to draw a border around the container)
+- optionally: background_color/image
+*/
+
+// Takes a component child and returns a single component
+pub fn container(child: Component, alignment: Alignment, padding: u16, margin: u16, border: bool) -> Component {
+
+    // Converts the iterable into a concrete Vec<Component> to store the child.
+    let widgets = vec![child];
 
     // Creates an "elemental" widget (one that directly produces an Element):
     Widget::elemental(widgets, propagate, |this| {
@@ -13,7 +24,6 @@ pub fn column(children: impl IntoIterator<Item = Component>) -> Component {
         // For each child component, create its element
         let (did_rebuild, children): (Vec<_>, Vec<_>) = this
             .state
-            .iter()
             .map(|child| child.borrow_mut().create_element())
             .unzip();
         // Check if any child rebuilt

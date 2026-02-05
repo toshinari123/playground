@@ -5,5 +5,6 @@ pub mod prelude {
 }
 
 pub trait Element: Send {
-    fn draw(&self, constraint: Size, display_list: &mut DisplayList);
+    fn draw(&self, constraint: Size, 
+        display_list: &mut DisplayList);
 }

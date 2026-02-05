@@ -106,6 +106,7 @@ pub fn render(widget: Component) -> std::io::Result<()> {
         if did_rebuild {
             _ = frame_sender.send(element);
         }
-        thread::sleep(Duration::from_millis(10) - tick_start.elapsed());
+        // saturating sub to prevent overflow when subtracting duration
+        thread::sleep(Duration::from_millis(10).saturating_sub(tick_start.elapsed()));
     }
 }
