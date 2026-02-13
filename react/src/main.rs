@@ -5,11 +5,11 @@ use react::prelude::*;
 use stdext::prelude::*;
 
 fn main() -> Result<()> {
-    // render(row([
-    //     column([counter(12), text_field("").0]),
-    //     column([text_field("").0, download("https://www.rust-lang.org")]),
-    // ]))
-    render(todo_list())
+    render(row([
+        column([counter(12), text_field("").0]),
+        column([text_field("").0, download("https://www.rust-lang.org")]),
+    ]))
+    // render(todo_list())
 }
 
 struct AddTask(String);
@@ -38,9 +38,9 @@ fn todo_list() -> Component {
 }
 
 fn add_task() -> Component {
-    let (textfield, buffer) = text_field("");
+    // let (textfield, buffer) = text_field("");
     Widget::stateful(
-        (textfield, buffer),
+        text_field(""),
         |this, msg| {
             switch(msg)
                 .case(|event: &KeyEvent| match event.code {
