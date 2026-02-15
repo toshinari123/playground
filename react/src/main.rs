@@ -9,7 +9,18 @@ fn main() -> Result<()> {
     //     column([counter(12), text_field("").0]),
     //     column([text_field("").0, download("https://www.rust-lang.org")]),
     // ]))
-    render(todo_list())
+
+    let items: Vec<_> = (1..=10)
+    .map(|i| container(text(format!("item {}", i)))
+        .border()
+        .build()
+        .constraint(1505, 5))
+    .collect();
+
+    render(scrollable(
+        items
+    ))
+    // render(todo_list())
 }
 
 struct AddTask(String);
