@@ -1,98 +1,81 @@
-use crate::prelude::{DisplayList, Element, Frame, Operation, Point, Size, Direction};
+use crate::prelude::*;
 
 pub mod prelude {
-    pub use super::ContainerElement;
+    pub use super::{Alignment, ContainerElement};
+}
+
+#[derive(Clone, Copy)]
+pub enum Alignment {
+    Start,
+    Center,
+    End,
+    Stretch,
 }
 
 pub struct ContainerElement {
-    pub children: Vec<Box<dyn Element>>,
-}
-
-struct Margin {
-    u16,
-    top: u16,
-    bottom: u16,
-    left: u16,
-    right: u16,
+    pub child: Box<dyn Element>,
+    pub alignment: Alignment,
+    pub padding: u16,
+    pub margin: u16,
+    pub border: bool,
 }
 
 impl Element for ContainerElement {
-
     fn draw(&self, constraint: Size, display_list: &mut DisplayList) {
-        
-        let child_height = constraint.y as usize / self.children.len();
-        let mut y_offset = 0;
-        
-        // draw border
-        drawBorder(constraint, display_list);
+        let margin = self.margin as isize;
+        let padding = self.padding as isize;
+        let border_size = if self.border { 1 } else { 0 };
 
-        // drawing each child
-        for child in &self.children {
-            let offset = Point {
-                x: 0,
-                y: y_offset as isize,
-            };
+        let inner_width = (constraint.x - 2 * margin - 2 * border_size - 2 * padding).max(0);
+        let inner_height = (constraint.y - 2 * margin - 2 * border_size - 2 * padding).max(0);
 
-            // move down ot child position
-            display_list.0.push(Operation::SetAnchor(offset));
+        let child_constraint = Size { x: inner_width, y: inner_height };
 
-            // draw child
-            child.draw(
-                Size {
-                    x: constraint.x,
-                    y: child_height as isize,
-                },
-                display_list,
-            );
+        let mut child_dl = DisplayList::new();
+        self.child.draw(child_constraint, &mut child_dl);
+        let child_width = child_dl.width();
+        let child_height = child_dl.height();
 
-            // move back to original position
-            display_list.0.push(Operation::SetAnchor(-offset));
+        if self.border {
+            let bx = margin;
+            let by = margin;
+            let bw = constraint.x - 2 * margin;
+            let bh = constraint.y - 2 * margin;
 
-            y_offset += child_height;
+            display_list.set(bx, by, '┌');
+            for x in (bx + 1)..(bx + bw - 1) {
+                display_list.set(x, by, '─');
+            }
+            display_list.set(bx + bw - 1, by, '┐');
+
+            display_list.set(bx, by + bh - 1, '└');
+            for x in (bx + 1)..(bx + bw - 1) {
+                display_list.set(x, by + bh - 1, '─');
+            }
+            display_list.set(bx + bw - 1, by + bh - 1, '┘');
+
+            for y in (by + 1)..(by + bh - 1) {
+                display_list.set(bx, y, '│');
+                display_list.set(bx + bw - 1, y, '│');
+            }
         }
+
+        let content_x = margin + border_size + padding;
+        let content_y = margin + border_size + padding;
+
+        let (offset_x, offset_y) = match self.alignment {
+            Alignment::Start => (0, 0),
+            Alignment::Center => (
+                (inner_width - child_width).max(0) / 2,
+                (inner_height - child_height).max(0) / 2,
+            ),
+            Alignment::End => (
+                (inner_width - child_width).max(0),
+                (inner_height - child_height).max(0),
+            ),
+            Alignment::Stretch => (0, 0),
+        };
+
+        display_list.merge(&child_dl, content_x + offset_x, content_y + offset_y);
     }
-    // fn draw(&self) -> Frame {
-    //     self.children
-    //         .iter()
-    //         .map(|child| {
-    //             let mut frame = child.draw();
-    //             frame.align_width();
-    //             frame
-    //         })
-    //         .reduce(|mut acc, mut frame| {
-    //             acc.append(&mut frame);
-    //             acc
-    //         })
-    //         .unwrap_or_else(|| vec![vec![]])
-    // }
 }
-
-fn drawBorder(constraint: Size, display_list: &mut DisplayList) {
-        // Draw top border
-        display_list.0.push(Operation::PutChar('┌'));
-        for _ in 1..constraint.x-1 {
-            display_list.0.push(Operation::Move(Direction::End));
-            display_list.0.push(Operation::PutChar('-'));
-        }
-        display_list.0.push(Operation::Move(Direction::End));
-        display_list.0.push(Operation::PutChar('┐'));
-
-        // Draw side borders
-        for y in 1..constraint.y-1 {
-            display_list.0.push(Operation::MoveTo(Point { x: 0, y }));
-            display_list.0.push(Operation::PutChar('│'));
-            display_list.0.push(Operation::MoveTo(Point { x: constraint.x, y }));
-            display_list.0.push(Operation::PutChar('│'));
-        }
-
-        // Draw bottom border
-        display_list.0.push(Operation::MoveTo(Point { x: 0, y: constraint.y-1 })); // y-1 because 0-indexed
-        display_list.0.push(Operation::PutChar('└'));
-        for _ in 1..constraint.x-1 {
-            display_list.0.push(Operation::Move(Direction::End));
-            display_list.0.push(Operation::PutChar('-'));
-        }
-        display_list.0.push(Operation::Move(Direction::End));
-        display_list.0.push(Operation::PutChar('┘'));
-    
-    }

@@ -1,38 +1,62 @@
-use crate::{component::prelude::*, elements::column_element::ColumnElement, widget::prelude::*};
+use crate::prelude::*;
+use crate::elements::container_element::{Alignment, ContainerElement};
 
-/**
-Container:
-A single-child layout widget
+pub struct Container {
+    child: Component,
+    alignment: Alignment,
+    padding: u16,
+    margin: u16,
+    border: bool,
+}
 
-properties:
-- alignment: Alignment enum (Start, Center, End, Stretch)
-- padding: u16 (number of spaces around the child)  
-- margin: u16 (number of spaces outside the border)
-- border: bool (whether to draw a border around the container)
-- optionally: background_color/image
-*/
+impl Container {
+    pub fn alignment(mut self, alignment: Alignment) -> Self {
+        self.alignment = alignment;
+        self
+    }
 
-// Takes a component child and returns a single component
-pub fn container(child: Component, alignment: Alignment, padding: u16, margin: u16, border: bool) -> Component {
+    pub fn padding(mut self, padding: u16) -> Self {
+        self.padding = padding;
+        self
+    }
 
-    // Converts the iterable into a concrete Vec<Component> to store the child.
-    let widgets = vec![child];
+    pub fn margin(mut self, margin: u16) -> Self {
+        self.margin = margin;
+        self
+    }
 
-    // Creates an "elemental" widget (one that directly produces an Element):
-    Widget::elemental(widgets, propagate, |this| {
+    pub fn border(mut self) -> Self {
+        self.border = true;
+        self
+    }
+
+    pub fn build(self) -> Component {
+        let Self { child, alignment, padding, margin, border } = self;
         
-        // For each child component, create its element
-        let (did_rebuild, children): (Vec<_>, Vec<_>) = this
-            .state
-            .map(|child| child.borrow_mut().create_element())
-            .unzip();
-        // Check if any child rebuilt
-        let did_any_child_rebuild = did_rebuild.into_iter().fold(false, |acc, e| acc || e);
-        (
-            did_any_child_rebuild,
-            Box::new(ColumnElement {
-                children,
-            }),
-        )
-    })
+        Widget::elemental(child, |this, msg| {
+            this.state.borrow_mut().on_message(msg);
+        }, move |this| {
+            let (did_rebuild, inner_element) = this.state.borrow_mut().create_element();
+            (
+                did_rebuild,
+                Box::new(ContainerElement {
+                    child: inner_element,
+                    alignment,
+                    padding,
+                    margin,
+                    border,
+                }),
+            )
+        })
+    }
+}
+
+pub fn container(child: Component) -> Container {
+    Container {
+        child,
+        alignment: Alignment::Start,
+        padding: 0,
+        margin: 0,
+        border: false,
+    }
 }

@@ -155,12 +155,175 @@ impl<T: Into<Vec<Operation>>> From<T> for DisplayList {
 }
 
 impl DisplayList {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
     pub fn draw_on(self, buffer: &mut Frame) {
         let mut anchor = Point::default();
         let mut offset = Point::default();
         self.0
             .into_iter()
             .for_each(|op| op.realize(&mut anchor, &mut offset, buffer));
+    }
+
+    /// Calculates the height (number of rows) this display list occupies.
+    pub fn height(&self) -> isize {
+        let mut anchor = Point::default();
+        let mut offset = Point::default();
+        let mut min_y: isize = isize::MAX;
+        let mut max_y: isize = isize::MIN;
+
+        for op in &self.0 {
+            match op {
+                Operation::PutChar(_) | Operation::DrawCursor => {
+                    let pos = anchor + offset;
+                    min_y = min_y.min(pos.y);
+                    max_y = max_y.max(pos.y);
+                }
+                Operation::MoveTo(point) => offset = *point,
+                Operation::Move(direction) => {
+                    if let Some(new_offset) = offset.adjacent(*direction) {
+                        offset = new_offset;
+                    }
+                }
+                Operation::SetAnchor(point) => {
+                    anchor += *point;
+                    offset = Point::default();
+                }
+            }
+        }
+
+        if min_y == isize::MAX {
+            0
+        } else {
+            max_y - min_y + 1
+        }
+    }
+    
+    /// Calculates the width (number of columns) this display list occupies.
+    pub fn width(&self) -> isize {
+        let mut anchor = Point::default();
+        let mut offset = Point::default();
+        let mut min_x: isize = isize::MAX;
+        let mut max_x: isize = isize::MIN;
+
+        for op in &self.0 {
+            match op {
+                Operation::PutChar(_) | Operation::DrawCursor => {
+                    let pos = anchor + offset;
+                    min_x = min_x.min(pos.x);
+                    max_x = max_x.max(pos.x);
+                }
+                Operation::MoveTo(point) => offset = *point,
+                Operation::Move(direction) => {
+                    if let Some(new_offset) = offset.adjacent(*direction) {
+                        offset = new_offset;
+                    }
+                }
+                Operation::SetAnchor(point) => {
+                    anchor += *point;
+                    offset = Point::default();
+                }
+            }
+        }
+
+        if min_x == isize::MAX {
+            0
+        } else {
+            max_x - min_x + 1
+        }
+    }
+
+    /// Sets a character at a specific position
+    pub fn set(&mut self, x: isize, y: isize, c: char) {
+        self.0.push(Operation::MoveTo(Point { x, y }));
+        self.0.push(Operation::PutChar(c));
+    }
+
+    /// Appends another display list with an offset
+    pub fn merge(&mut self, other: &DisplayList, offset_x: isize, offset_y: isize) {
+        self.0.push(Operation::SetAnchor(Point { x: offset_x, y: offset_y }));
+        self.0.extend(other.0.clone());
+        self.0.push(Operation::SetAnchor(Point { x: -offset_x, y: -offset_y }));
+    }
+    
+    /// Merges operations from `source` into `self`, but only keeps content
+    /// within a clip rectangle. Useful for partial rendering (e.g., scrolling).
+    ///
+    /// - `x_offset`, `y_offset`: where to place the clipped content in `self`
+    /// - `clip_width`, `clip_height`: size of the visible region (0,0 to clip_width,clip_height)
+    pub fn merge_clipped(
+        &mut self,
+        source: &DisplayList,
+        x_offset: isize,
+        y_offset: isize,
+        clip_width: isize,
+        clip_height: isize,
+    ) {
+        // anchor = origi pos. relative to parent
+        // Track the cumulative anchor offset (anchors stack/accumulate)
+        let mut anchor_x: isize = 0;
+        let mut anchor_y: isize = 0;
+
+        // Track the current cursor position (where the next char would go)
+        let mut cursor_x: isize = 0;
+        let mut cursor_y: isize = 0;
+
+        for op in &source.0 {
+            match op {
+                // Anchors accumulate - they're relative offsets that stack
+                Operation::SetAnchor(point) => {
+                    anchor_x += point.x;
+                    anchor_y += point.y;
+                }
+
+                // MoveTo is relative to the current anchor
+                Operation::MoveTo(point) => {
+                    cursor_x = anchor_x + point.x;
+                    cursor_y = anchor_y + point.y;
+                }
+
+                // Move shifts cursor by 1 in the given direction
+                Operation::Move(direction) => {
+                    match direction {
+                        Direction::Up => cursor_y -= 1,
+                        Direction::Down => cursor_y += 1,
+                        Direction::Start => cursor_x -= 1,
+                        Direction::End => cursor_x += 1,
+                    }
+                }
+
+                // PutChar: only emit if cursor is inside the clip rectangle
+                Operation::PutChar(ch) => {
+                    if cursor_x >= 0 && cursor_x < clip_width
+                        && cursor_y >= 0 && cursor_y < clip_height
+                    {
+                        // Emit with offset applied - translates to final position in `self`
+                        self.0.push(Operation::MoveTo(Point {
+                            x: cursor_x + x_offset,
+                            y: cursor_y + y_offset,
+                        }));
+                        self.0.push(Operation::PutChar(*ch));
+                    }
+                    // Cursor always advances, even if clipped
+                    cursor_x += 1;
+                }
+
+                // DrawCursor: same clipping logic as PutChar
+                Operation::DrawCursor => {
+                    if cursor_x >= 0 && cursor_x < clip_width
+                        && cursor_y >= 0 && cursor_y < clip_height
+                    {
+                        self.0.push(Operation::MoveTo(Point {
+                            x: cursor_x + x_offset,
+                            y: cursor_y + y_offset,
+                        }));
+                        self.0.push(Operation::DrawCursor);
+                    }
+                }
+            }
+        }
     }
 }
 

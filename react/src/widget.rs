@@ -4,15 +4,17 @@ use stdext::prelude::switch;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use crate::{
+    prelude::*,
     component::prelude::*,
     message::prelude::*,
     prelude::Element,
     render::Tick,
     runtime::{Stream, Task, go},
+    prelude::Size,
 };
 
 pub mod prelude {
-    pub use super::{Widget, propagate};
+    pub use super::{Widget, propagate, ComponentExt};
 }
 
 thread_local! {
@@ -191,4 +193,44 @@ pub fn propagate(this: &mut Widget<Vec<Component>>, msg: &Message) {
     this.state
         .iter()
         .for_each(|child| child.borrow_mut().on_message(msg));
+}
+
+pub trait ComponentExt {
+    fn constraint(self, width: isize, height: isize) -> Component;
+}
+
+impl ComponentExt for Component {
+    fn constraint(self, width: isize, height: isize) -> Component {
+        Widget::elemental(
+            self,
+            |this, msg| {
+                this.state.borrow_mut().on_message(msg);
+            },
+            move |this| {
+                let (did_rebuild, inner_element) = this.state.borrow_mut().create_element();
+                (
+                    did_rebuild,
+                    Box::new(ConstraintElement {
+                        inner: inner_element,
+                        size: Size { x: width, y: height },
+                    }),
+                )
+            },
+        )
+    }
+}
+
+struct ConstraintElement {
+    inner: Box<dyn Element>,
+    size: Size,
+}
+
+impl Element for ConstraintElement {
+    fn draw(&self, constraint: Size, display_list: &mut DisplayList) {
+        self.inner.draw(constraint, display_list);
+    }
+
+    fn preferred_size(&self) -> Option<Size> {
+        Some(self.size)
+    }
 }

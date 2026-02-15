@@ -7,4 +7,8 @@ pub mod prelude {
 pub trait Element: Send {
     fn draw(&self, constraint: Size, 
         display_list: &mut DisplayList);
+
+    fn preferred_size(&self) -> Option<Size> {
+        None
+    }
 }
