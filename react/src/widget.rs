@@ -85,21 +85,30 @@ where
         }))
     }
     fn _build(&mut self) -> (bool, Component) {
-        if !self.needs_rebuild
+        if !self.get_needs_rebuild()
             && let Some(prev) = &self.prev
         {
             (false, prev.clone())
         } else {
             let new_widget = (self.builder)(&self.state);
             self.prev = Some(new_widget.clone());
-            self.needs_rebuild = false;
+            self.mark_did_rebuild();
             (true, new_widget)
         }
+    }
+    pub fn get_needs_rebuild(&self) -> bool {
+        self.needs_rebuild
+    }
+    pub fn mark_needs_rebuild(&mut self) {
+        self.needs_rebuild = true;
+    }
+    pub fn mark_did_rebuild(&mut self) {
+        self.needs_rebuild = false;
     }
     #[inline]
     pub fn set_state(&mut self, f: impl FnOnce(&mut State)) {
         f(&mut self.state);
-        self.needs_rebuild = true;
+        self.mark_needs_rebuild();
     }
 }
 
@@ -132,6 +141,7 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
     }
 }
 
+// A standard
 fn create_child<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
     let (did_rebuild, widget) = this._build();
     let (did_child_rebuild, child_element) = widget.borrow_mut().create_element();

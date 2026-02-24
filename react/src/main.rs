@@ -7,9 +7,16 @@ use stdext::prelude::*;
 fn main() -> Result<()> {
     render(row([
         column([counter(12), text_field("").0]),
-        column([text_field("").0, download("https://www.rust-lang.org")]),
+        column([
+            text_field("").0,
+            scrollable_2d(download("https://www.rust-lang.org")),
+        ]),
     ]))
     // render(todo_list())
+    // render(column([
+    //     scrollable(Axis::Vertical, column([counter(0), counter(1), counter(2)])),
+    //     scrollable_2d(column([counter(0), counter(1), counter(2)])),
+    // ]))
 }
 
 struct AddTask(String);

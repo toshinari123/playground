@@ -29,18 +29,4 @@ impl Element for ColumnElement {
             y_offset += child_height;
         }
     }
-    // fn draw(&self) -> Frame {
-    //     self.children
-    //         .iter()
-    //         .map(|child| {
-    //             let mut frame = child.draw();
-    //             frame.align_width();
-    //             frame
-    //         })
-    //         .reduce(|mut acc, mut frame| {
-    //             acc.append(&mut frame);
-    //             acc
-    //         })
-    //         .unwrap_or_else(|| vec![vec![]])
-    // }
 }

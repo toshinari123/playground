@@ -21,6 +21,6 @@ pub fn app(file: Document) -> Component {
                 })
                 .default(|| Propagate)
         },
-        move |(textfield, _)| textfield.clone(),
+        move |(textfield, _)| scrollable_2d(textfield.clone()),
     )
 }
