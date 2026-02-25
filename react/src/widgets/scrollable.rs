@@ -7,27 +7,28 @@ pub fn scrollable(axis: Axis, child: Component) -> Component {
     Widget::elemental(
         (axis, Vec2::default(), child),
         |this, msg| {
+            let axis = this.state.0;
             switch(msg).case(|event: &KeyEvent| match event.code {
-                KeyCode::Up => this.set_state(|(axis, offset, _)| {
-                    if *axis == Axis::Vertical {
-                        offset.y = (offset.y - 1).max(0)
+                KeyCode::Up => {
+                    if axis == Axis::Vertical {
+                        this.set_state(|(_, offset, _)| offset.y = (offset.y - 1).max(0));
                     }
-                }),
-                KeyCode::Down => this.set_state(|(axis, offset, _)| {
-                    if *axis == Axis::Vertical {
-                        offset.y += 1
+                }
+                KeyCode::Down => {
+                    if axis == Axis::Vertical {
+                        this.set_state(|(_, offset, _)| offset.y += 1);
                     }
-                }),
-                KeyCode::Left => this.set_state(|(axis, offset, _)| {
-                    if *axis == Axis::Horizontal {
-                        offset.x = (offset.x - 1).max(0)
+                }
+                KeyCode::Left => {
+                    if axis == Axis::Horizontal {
+                        this.set_state(|(_, offset, _)| offset.x = (offset.x - 1).max(0));
                     }
-                }),
-                KeyCode::Right => this.set_state(|(axis, offset, _)| {
-                    if *axis == Axis::Horizontal {
-                        offset.x += 1
+                }
+                KeyCode::Right => {
+                    if axis == Axis::Horizontal {
+                        this.set_state(|(_, offset, _)| offset.x += 1);
                     }
-                }),
+                }
                 _ => {}
             });
             this.state.2.borrow_mut().on_message(msg);
