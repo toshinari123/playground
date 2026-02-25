@@ -3,10 +3,7 @@ use crate::{component::prelude::*, elements::column_element::ColumnElement, widg
 pub fn column(children: impl IntoIterator<Item = Component>) -> Component {
     let widgets = children.into_iter().collect::<Vec<_>>();
     Widget::elemental(widgets, propagate, |this| {
-        // Convert children to hashmap with index keys for reconciliation
-        let children_map = children_with_indices(this.state.clone());
-        
-        // Reconcile children (this will update this.children internally via create_child)
+        // Create elements for all children
         let (did_rebuild, child_elements): (Vec<_>, Vec<_>) = this
             .state
             .iter()

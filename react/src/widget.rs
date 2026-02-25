@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, fmt::Debug, ops::RangeFrom, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, ops::RangeFrom, rc::Rc};
 
 use stdext::prelude::switch;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
@@ -13,7 +13,7 @@ use crate::{
 };
 
 pub mod prelude {
-    pub use super::{Widget, propagate, single_child, children_with_indices};
+    pub use super::{Widget, propagate};
 }
 
 thread_local! {
@@ -27,9 +27,9 @@ pub fn uid() -> usize {
 pub struct Widget<State> {
     id: usize,
     pub state: State,
-    children: HashMap<String, Component>,
+    children: Vec<Component>,
     needs_rebuild: bool,
-    builder: Box<dyn Fn(&State) -> HashMap<String, Component>>,
+    builder: Box<dyn Fn(&State) -> Vec<Component>>,
     on_message: Rc<dyn Fn(&mut Self, &Message)>,
     create_element: Rc<dyn Fn(&mut Self) -> (bool, Box<dyn Element>)>,
 }
@@ -61,13 +61,13 @@ where
         Rc::new(RefCell::new(Widget {
             id,
             state: state,
-            children: HashMap::new(),
+            children: Vec::new(),
             needs_rebuild: true,
-            builder: Box::new(move |state| single_child(builder(state))),
+            builder: Box::new(move |state| vec![builder(state)]),
             on_message: Rc::new(move |this, msg| {
                 if let Propagate = on_message(this, msg) {
                     // Propagate to all children
-                    for child in this.children.values() {
+                    for child in &this.children {
                         child.borrow_mut().on_message(msg);
                     }
                 }
@@ -79,8 +79,8 @@ where
     pub fn stateful_container(
         state: State,
         on_message: impl Fn(&mut Self, &Message) -> MessageFlow + 'static,
-        builder: impl Fn(&State) -> HashMap<String, Component> + 'static,
-        create_element: impl Fn(&mut Self, Vec<(String, Box<dyn Element>)>) -> (bool, Box<dyn Element>) + 'static,
+        builder: impl Fn(&State) -> Vec<Component> + 'static,
+        create_element: impl Fn(&mut Self, Vec<Box<dyn Element>>) -> (bool, Box<dyn Element>) + 'static,
     ) -> Component {
         let id = uid();
         // Register widget in tree (no parent yet, will be set when added as child)
@@ -89,13 +89,13 @@ where
         Rc::new(RefCell::new(Widget {
             id,
             state: state,
-            children: HashMap::new(),
+            children: Vec::new(),
             needs_rebuild: true,
             builder: Box::new(builder),
             on_message: Rc::new(move |this, msg| {
                 if let Propagate = on_message(this, msg) {
                     // Propagate to all children
-                    for child in this.children.values() {
+                    for child in &this.children {
                         child.borrow_mut().on_message(msg);
                     }
                 }
@@ -116,15 +116,15 @@ where
         Rc::new(RefCell::new(Widget {
             id,
             state: state,
-            children: HashMap::new(),
+            children: Vec::new(),
             needs_rebuild: true,
-            builder: Box::new(|_| HashMap::new()),
+            builder: Box::new(|_| Vec::new()),
             on_message: Rc::new(on_message),
             create_element: Rc::new(create_element),
         }))
     }
     
-    fn _build(&mut self) -> (bool, HashMap<String, Component>) {
+    fn _build(&mut self) -> (bool, Vec<Component>) {
         if !self.needs_rebuild && !self.children.is_empty() {
             // Return cached children if no rebuild needed
             (false, self.children.clone())
@@ -155,9 +155,9 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
         Rc::new(RefCell::new(Widget {
             id,
             state: Task::Running(go(task)),
-            children: HashMap::new(),
+            children: Vec::new(),
             needs_rebuild: true,
-            builder: Box::new(move |state| single_child(builder(state))),
+            builder: Box::new(move |state| vec![builder(state)]),
             on_message: Rc::new(move |this, msg| {
                 switch(msg).case(|&Tick(_)| {
                     if this.state.check() {
@@ -166,7 +166,7 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
                 });
                 if let Propagate = on_message(this, msg) {
                     // Propagate to all children
-                    for child in this.children.values() {
+                    for child in &this.children {
                         child.borrow_mut().on_message(msg);
                     }
                 }
@@ -194,9 +194,9 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
                 receiver,
                 current: None,
             },
-            children: HashMap::new(),
+            children: Vec::new(),
             needs_rebuild: true,
-            builder: Box::new(move |state| single_child(builder(state))),
+            builder: Box::new(move |state| vec![builder(state)]),
             on_message: Rc::new(move |this, msg| {
                 switch(msg).case(|&Tick(_)| {
                     if this.state.check() {
@@ -205,7 +205,7 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
                 });
                 if let Propagate = on_message(this, msg) {
                     // Propagate to all children
-                    for child in this.children.values() {
+                    for child in &this.children {
                         child.borrow_mut().on_message(msg);
                     }
                 }
@@ -215,44 +215,45 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
     }
 }
 
-/// Reconciliation algorithm for widget children
+/// Reconciliation algorithm for widget children using Vec
 /// Returns (did_rebuild, updated_children)
-fn reconcile_children(
-    parent_id: usize,
-    old_children: &mut HashMap<String, Component>,
-    new_children: HashMap<String, Component>,
-) -> (bool, HashMap<String, Component>) {
+fn reconcile_children_vec(
+    old_children: &mut Vec<Component>,
+    new_children: Vec<Component>,
+) -> (bool, Vec<Component>) {
     let mut did_rebuild = false;
-    let mut updated_children = HashMap::new();
+    let mut updated_children = Vec::with_capacity(new_children.len());
     
-    // Process new children
-    for (key, new_child) in new_children {
-        if let Some(old_child) = old_children.remove(&key) {
-            // Compare IDs
-            let old_id = old_child.borrow().id();
+    for (i, new_child) in new_children.into_iter().enumerate() {
+        if i < old_children.len() {
+            // Compare IDs at same index
+            let old_id = old_children[i].borrow().id();
             let new_id = new_child.borrow().id();
             
-                updated_children.insert(key.clone(), old_child);
-            
-            // Update tree registry with the child we're actually using
-            let child_id = updated_children.get(&key).unwrap().borrow().id();
-            // tree::add_child(parent_id, key.clone(), child_id);
+            if old_id == new_id {
+                // Same component, reuse it
+                updated_children.push(old_children[i].clone());
+            } else {
+                // Different component, replace it
+                did_rebuild = true;
+                updated_children.push(new_child);
+            }
         } else {
-            // New key, add new component
+            // New child beyond current length
             did_rebuild = true;
-            updated_children.insert(key.clone(), new_child.clone());
-            
-            // Update tree registry
-            // tree::add_child(parent_id, key.clone(), new_child.borrow().id());
+            updated_children.push(new_child);
         }
     }
     
-    // Remove old children that are no longer present
-    for (key, old_child) in old_children.drain() {
+    // If old children had more elements than new children, we need to rebuild
+    if old_children.len() > updated_children.len() {
         did_rebuild = true;
-        // Remove from tree registry
-        // tree::remove_child(parent_id, &key);
+        // Truncate old_children to match new length
+        old_children.truncate(updated_children.len());
     }
+    
+    // Replace old children with updated ones
+    *old_children = updated_children.clone();
     
     (did_rebuild, updated_children)
 }
@@ -261,42 +262,40 @@ fn create_child<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
     let (did_build, new_children) = this._build();
     
     // Reconcile children
-    // let (did_reconcile, reconciled_children) = reconcile_children(
-    //     this.id,
-    //     &mut this.children,
-    //     new_children,
-    // );
+    let (did_reconcile, reconciled_children) = reconcile_children_vec(
+        &mut this.children,
+        new_children,
+    );
     
     // Update widget's children
-    this.children = new_children;
+    this.children = reconciled_children;
     
     // Create elements for all children
     let mut child_elements = Vec::new();
     let mut any_child_rebuilt = false;
     
-    for (key, child) in &this.children {
+    for child in &this.children {
         let (child_did_rebuild, child_element) = child.borrow_mut().create_element();
-        child_elements.push((key.clone(), child_element));
+        child_elements.push(child_element);
         any_child_rebuilt = any_child_rebuilt || child_did_rebuild;
     }
     
     // For now, we'll return a simple container element
     // In a real implementation, this would create the appropriate element type
-    let did_any_rebuild = did_build || any_child_rebuilt;
+    let did_any_rebuild = did_build || did_reconcile || any_child_rebuilt;
     (did_any_rebuild, Box::new(SimpleContainer { children: child_elements }))
 }
 
 fn create_children<T, F>(create_element: F) -> impl Fn(&mut Widget<T>) -> (bool, Box<dyn Element>)
 where
     T: 'static,
-    F: Fn(&mut Widget<T>, Vec<(String, Box<dyn Element>)>) -> (bool, Box<dyn Element>) + 'static,
+    F: Fn(&mut Widget<T>, Vec<Box<dyn Element>>) -> (bool, Box<dyn Element>) + 'static,
 {
     move |this: &mut Widget<T>| {
         let (did_build, new_children) = this._build();
         
         // Reconcile children
-        let (did_reconcile, reconciled_children) = reconcile_children(
-            this.id,
+        let (did_reconcile, reconciled_children) = reconcile_children_vec(
             &mut this.children,
             new_children,
         );
@@ -308,12 +307,11 @@ where
         let mut child_elements = Vec::new();
         let mut any_child_rebuilt = false;
         
-        for (key, child) in &this.children {
+        for child in &this.children {
             let (child_did_rebuild, child_element) = child.borrow_mut().create_element();
-            child_elements.push((key.clone(), child_element));
+            child_elements.push(child_element);
             any_child_rebuilt = any_child_rebuilt || child_did_rebuild;
         }
-        child_elements.sort_by(|(a, _), (c, _)| a.cmp(c));
         
         // Call the custom create_element with child_elements
         let (custom_did_rebuild, custom_element) = create_element(this, child_elements);
@@ -327,13 +325,13 @@ where
 /// Simple container element for demonstration
 /// In real code, this would be replaced with proper element types
 struct SimpleContainer {
-    children: Vec<(String, Box<dyn Element>)>,
+    children: Vec<Box<dyn Element>>,
 }
 
 impl Element for SimpleContainer {
     fn draw(&self, size: crate::prelude::Size, display_list: &mut crate::prelude::DisplayList) {
         // Simple implementation: draw all children
-        for (_, child) in &self.children {
+        for child in &self.children {
             child.draw(size, display_list);
         }
     }
@@ -360,20 +358,4 @@ pub fn propagate(this: &mut Widget<Vec<Component>>, msg: &Message) {
     this.state
         .iter()
         .for_each(|child| child.borrow_mut().on_message(msg));
-}
-
-/// Helper function to convert a single component to a hashmap with empty key
-pub fn single_child(child: Component) -> HashMap<String, Component> {
-    let mut map = HashMap::new();
-    map.insert("".to_string(), child);
-    map
-}
-
-/// Helper function to convert a vector of components to a hashmap with index keys
-pub fn children_with_indices(children: Vec<Component>) -> HashMap<String, Component> {
-    children
-        .into_iter()
-        .enumerate()
-        .map(|(i, child)| (i.to_string(), child))
-        .collect()
 }

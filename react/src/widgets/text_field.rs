@@ -14,6 +14,7 @@ struct TextField {
 
 impl TextField {
     fn insert(&mut self, c: char) {
+        //eprintln!("[TEXT_FIELD::insert] Inserting char: {} to buffer {:?}", c, self.buffer);
         self.buffer.borrow_mut().insert(self.cursor, c);
         self.cursor += 1;
     }
@@ -74,7 +75,10 @@ pub fn text_field(initial: impl Display) -> (Component, Rc<RefCell<String>>) {
                 switch(msg).case(|event: &KeyEvent| match event.code {
                     KeyCode::Enter => this.set_state(|buffer| buffer.insert('\n')),
                     KeyCode::Backspace => this.set_state(|buffer| _ = buffer.remove_left()),
-                    KeyCode::Char(c) => this.set_state(|buffer| buffer.insert(c)),
+                    KeyCode::Char(c) => {
+                        //eprintln!("[TEXT_FIELD] Inserting char: {}", c);
+                        this.set_state(|buffer| buffer.insert(c));
+                    },
                     KeyCode::Left => this.set_state(|state| state.move_cursor_left()),
                     KeyCode::Right => this.set_state(|state| state.move_cursor_right()),
                     KeyCode::Tab => this.set_state(|state| state.insert_str("    ")),
@@ -83,6 +87,7 @@ pub fn text_field(initial: impl Display) -> (Component, Rc<RefCell<String>>) {
                 Intercept
             },
             |buffer| {
+                //eprintln!("[TEXT_FIELD::builder] building");
                 text_cursor(
                     buffer.buffer.borrow().clone(),
                     if buffer.show_cursor {
