@@ -17,12 +17,12 @@ fn main() -> Result<()> {
         // 2. `enter` key swaps
         swap(text("/---\\\n|   |\n\\---/"), text_field("").0),
         // 3. variable number of textfields (type a number to change)
-        variable_numoftextfields(),
+        // variable_numoftextfields(),
         // 4. timer
         timer()
     ];
     // change number below 
-    render(options[3].clone())
+    render(options[0].clone())
 }
 
 struct AddTask(String);
@@ -98,7 +98,7 @@ fn swap(a: StaticComponent, b: StaticComponent) -> Component {
 }
 
 //-------- todo: need new convenience func in widget.rs cuz elemental has no state and stateful auto assume 1 child (currently)
-
+/*
 fn column_create_element(
     _this: &mut Widget<usize>,
     child_elements: Vec<(String, Box<dyn Element>)>,
@@ -142,8 +142,16 @@ fn variable_numoftextfields() -> Component {
         column_create_element,
     )
 }
+*/
 
 // potential problems with the approach right now:
 // - same key, different widget type (like TextField -> Timer)
 //   - dont care, widget.rs reconcile still returns TextField
-// - 
+// - old stateful widget like textfield and timer is being annoying
+//   - reason: it returns a single stateful widget like textcursor or text,
+//             which in reconcilation logic of 'same key exist use old ver'
+//             mean no visual update
+//   - fix right now: single_child() has no reconcilation
+//   - proposed solution: stuff like textfield and timer should return Component 
+//                        or like draw_element() instead of returning a useless stateful widget
+//                        cuz the child state depends entirely on parent state
