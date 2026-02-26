@@ -72,7 +72,7 @@ where
                     }
                 }
             }),
-            create_element: Rc::new(create_child),
+            create_element: Rc::new(create_child_always_replace),
         }))
     }
     
@@ -171,7 +171,7 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
                     }
                 }
             }),
-            create_element: Rc::new(create_child),
+            create_element: Rc::new(create_child_always_replace),
         }))
     }
 }
@@ -210,7 +210,7 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
                     }
                 }
             }),
-            create_element: Rc::new(create_child),
+            create_element: Rc::new(create_child_always_replace),
         }))
     }
 }
@@ -230,14 +230,14 @@ fn reconcile_children_vec(
             let old_id = old_children[i].borrow().id();
             let new_id = new_child.borrow().id();
             
-            if old_id == new_id {
+            //if old_id == new_id {
                 // Same component, reuse it
                 updated_children.push(old_children[i].clone());
-            } else {
+            //} else {
                 // Different component, replace it
-                did_rebuild = true;
-                updated_children.push(new_child);
-            }
+            //    did_rebuild = true;
+            //    updated_children.push(new_child);
+            //}
         } else {
             // New child beyond current length
             did_rebuild = true;
@@ -258,17 +258,17 @@ fn reconcile_children_vec(
     (did_rebuild, updated_children)
 }
 
-fn create_child<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
+fn create_child_always_replace<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
     let (did_build, new_children) = this._build();
     
     // Reconcile children
-    let (did_reconcile, reconciled_children) = reconcile_children_vec(
-        &mut this.children,
-        new_children,
-    );
+    //let (did_reconcile, reconciled_children) = reconcile_children_vec(
+    //    &mut this.children,
+    //    new_children,
+    //);
     
     // Update widget's children
-    this.children = reconciled_children;
+    this.children = new_children;
     
     // Create elements for all children
     let mut child_elements = Vec::new();
@@ -282,7 +282,7 @@ fn create_child<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
     
     // For now, we'll return a simple container element
     // In a real implementation, this would create the appropriate element type
-    let did_any_rebuild = did_build || did_reconcile || any_child_rebuilt;
+    let did_any_rebuild = did_build || any_child_rebuilt;
     (did_any_rebuild, Box::new(SimpleContainer { children: child_elements }))
 }
 
@@ -355,7 +355,7 @@ impl<State> _Component for Widget<State> {
 }
 
 pub fn propagate(this: &mut Widget<Vec<Component>>, msg: &Message) {
-    this.state
+    this.children
         .iter()
         .for_each(|child| child.borrow_mut().on_message(msg));
 }
