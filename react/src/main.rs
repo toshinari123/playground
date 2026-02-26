@@ -17,12 +17,12 @@ fn main() -> Result<()> {
         // 2. `enter` key swaps
         swap(text("/---\\\n|   |\n\\---/"), text_field("").0),
         // 3. variable number of textfields (type a number to change)
-        // variable_numoftextfields(),
+        variable_numoftextfields(),
         // 4. timer
         timer()
     ];
     // change number below 
-    render(options[0].clone())
+    render(options[3].clone())
 }
 
 struct AddTask(String);
@@ -98,13 +98,13 @@ fn swap(a: StaticComponent, b: StaticComponent) -> Component {
 }
 
 //-------- todo: need new convenience func in widget.rs cuz elemental has no state and stateful auto assume 1 child (currently)
-/*
+
 fn column_create_element(
     _this: &mut Widget<usize>,
-    child_elements: Vec<(String, Box<dyn Element>)>,
+    child_elements: Vec<Box<dyn Element>>,
 ) -> (bool, Box<dyn Element>) {
     // Extract just the elements, dropping the keys
-    let elements: Vec<Box<dyn Element>> = child_elements.into_iter().map(|(_, el)| el).collect();
+    let elements: Vec<Box<dyn Element>> = child_elements.into_iter().map(|el| el).collect();
     (false, Box::new(ColumnElement { children: elements }))
 }
 
@@ -131,18 +131,24 @@ fn variable_numoftextfields() -> Component {
         move |numtextfields| {
             //create new hashmap with keys being "var1" "var2"...
             //and each component is empty textfield
-            let mut map = std::collections::HashMap::new();
+            /*let mut map = std::collections::HashMap::new();
             for i in 1..=*numtextfields {
                 let key = format!("var{}", i);
                 let component = text_field("").0;
                 map.insert(key, component);
             }
-            map
+            map*/
+            let mut v = vec![];
+            for i in 1..=*numtextfields {
+                let component = text_field("").0;
+                v.push(component);
+            }
+            v
         },
-        column_create_element,
+        move |s, e| column_create_element(s,e),
     )
 }
-*/
+
 
 // potential problems with the approach right now:
 // - same key, different widget type (like TextField -> Timer)
