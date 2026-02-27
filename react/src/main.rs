@@ -1,9 +1,9 @@
 use std::io::Result;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use react::prelude::*;
+use react::{focus, prelude::*};
 use stdext::prelude::*;
-//use crate::elements::column_element::ColumnElement;
+use std::fmt::Display;
 
 fn main() -> Result<()> {
     let options = [
@@ -18,11 +18,15 @@ fn main() -> Result<()> {
         swap(text("/---\\\n|   |\n\\---/"), text_field("").0),
         // 3. variable number of textfields (type a number to change)
         variable_numoftextfields(),
-        // 4. timer
-        timer()
+        // 4. focusable column example
+        focus_root(focusable_column([
+            focusable_text("First focusable item"),
+            focusable_text("Second focusable item"),
+            focusable_text("Third focusable item"),
+        ])),
     ];
-    // change number below 
-    render(options[3].clone())
+    // change number below
+    render(options[4].clone())
 }
 
 struct AddTask(String);
@@ -146,6 +150,17 @@ fn variable_numoftextfields() -> Component {
             v
         },
         move |s, e| column_create_element(s,e),
+    )
+}
+
+//---
+fn focusable_text(s: impl Display + 'static) -> Component {
+    let text_string = s.to_string();
+    
+    focus::focusable(
+        text_string.clone(),
+        |_, _| MessageFlow::Propagate,
+        |state| vec![text(state.inner.clone())],
     )
 }
 

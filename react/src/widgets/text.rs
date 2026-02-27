@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{component::prelude::*, prelude::StringElement, widget::Widget};
+use crate::{component::prelude::*, focus, prelude::StringElement, widget::Widget};
 
 #[inline]
 pub fn text(s: impl Display + 'static) -> Component {

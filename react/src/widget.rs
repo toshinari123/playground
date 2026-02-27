@@ -27,7 +27,7 @@ pub fn uid() -> usize {
 pub struct Widget<State> {
     id: usize,
     pub state: State,
-    children: Vec<Component>,
+    pub children: Vec<Component>,
     needs_rebuild: bool,
     builder: Box<dyn Fn(&State) -> Vec<Component>>,
     on_message: Rc<dyn Fn(&mut Self, &Message)>,

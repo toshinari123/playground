@@ -1,4 +1,7 @@
-use crate::{component::prelude::*, elements::column_element::ColumnElement, prelude::MessageFlow::Propagate, widget::prelude::*};
+use crate::{
+    component::prelude::*, elements::column_element::ColumnElement, focus,
+    prelude::MessageFlow::Propagate, widget::prelude::*,
+};
 
 pub fn column(children: impl IntoIterator<Item = Component>) -> Component {
     let children_vec = children.into_iter().collect::<Vec<_>>();
@@ -16,5 +19,19 @@ pub fn column(children: impl IntoIterator<Item = Component>) -> Component {
                 }),
             )
         },
+    )
+}
+
+/// Create a focusable column widget
+///
+/// This is a column that can receive keyboard focus and navigate between its children
+/// using the Tab key.
+pub fn focusable_column(children: impl IntoIterator<Item = Component>) -> Component {
+    let children_vec = children.into_iter().collect::<Vec<_>>();
+    
+    focus::focusable(
+        (),
+        |_, _| Propagate,
+        move |_| children_vec.clone(),
     )
 }
