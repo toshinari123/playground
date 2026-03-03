@@ -16,6 +16,13 @@ pub mod prelude {
     pub use super::{Widget, propagate};
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum FocusState {
+    NotFocused,
+    ChildFocused(usize),
+    SelfFocused,
+}
+
 thread_local! {
     pub(crate) static COUNTER: RefCell<RangeFrom<usize>> = RefCell::new(0..);
 }
@@ -27,11 +34,13 @@ pub fn uid() -> usize {
 pub struct Widget<State> {
     id: usize,
     pub state: State,
-    children: Vec<Component>,
+    pub children: Vec<Component>,
     needs_rebuild: bool,
     builder: Box<dyn Fn(&State) -> Vec<Component>>,
     on_message: Rc<dyn Fn(&mut Self, &Message)>,
     create_element: Rc<dyn Fn(&mut Self) -> (bool, Box<dyn Element>)>,
+    pub focused_child_index: FocusState,
+    is_focusable: bool,
 }
 
 impl<State> Debug for Widget<State> {
@@ -73,6 +82,8 @@ where
                 }
             }),
             create_element: Rc::new(create_child_always_replace),
+            focused_child_index: FocusState::NotFocused,
+            is_focusable: false,
         }))
     }
     
@@ -101,6 +112,8 @@ where
                 }
             }),
             create_element: Rc::new(create_children(create_element)),
+            focused_child_index: FocusState::NotFocused,
+            is_focusable: false,
         }))
     }
     
@@ -121,6 +134,30 @@ where
             builder: Box::new(|_| Vec::new()),
             on_message: Rc::new(on_message),
             create_element: Rc::new(create_element),
+            focused_child_index: FocusState::NotFocused,
+            is_focusable: false,
+        }))
+    }
+    
+    pub fn focusable_elemental(
+        state: State,
+        on_message: impl Fn(&mut Self, &Message) + 'static,
+        create_element: impl Fn(&mut Self) -> (bool, Box<dyn Element>) + 'static,
+    ) -> Component {
+        let id = uid();
+        // Register widget in tree (no parent yet, will be set when added as child)
+        // tree::register(id, None);
+        
+        Rc::new(RefCell::new(Widget {
+            id,
+            state: state,
+            children: Vec::new(),
+            needs_rebuild: true,
+            builder: Box::new(|_| Vec::new()),
+            on_message: Rc::new(on_message),
+            create_element: Rc::new(create_element),
+            focused_child_index: FocusState::NotFocused,
+            is_focusable: true,
         }))
     }
     pub fn get_needs_rebuild(&self) -> bool {
@@ -180,6 +217,8 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
                 }
             }),
             create_element: Rc::new(create_child_always_replace),
+            focused_child_index: FocusState::NotFocused,
+            is_focusable: false,
         }))
     }
 }
@@ -219,6 +258,8 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
                 }
             }),
             create_element: Rc::new(create_child_always_replace),
+            focused_child_index: FocusState::NotFocused,
+            is_focusable: false,
         }))
     }
 }
@@ -359,6 +400,47 @@ impl<State> _Component for Widget<State> {
     #[inline]
     fn on_message(&mut self, event: &Message) {
         (self.on_message.clone())(self, event);
+    }
+    
+    fn change_focus(&mut self, dir: Dir) -> bool {
+        //eprintln!("change_focus entered: {}, is_focusable: {}, numchild: {}", self.id, self.is_focusable, self.children.len());
+        if self.is_focusable && self.focused_child_index == FocusState::NotFocused {
+            self.focused_child_index = FocusState::SelfFocused;
+            return true;
+        }
+        
+        // Clear current focus
+        let old_focus = std::mem::replace(&mut self.focused_child_index, FocusState::NotFocused);
+
+        if self.children.len() == 0 {
+            return false;
+        }
+        
+        let starting_idx = if let FocusState::ChildFocused(idx) = old_focus {
+            idx
+        } else {
+            match dir {
+                Dir::Positive => 0,
+                Dir::Negative => self.children.len() - 1,
+            }
+        };
+
+        let mut idx = starting_idx;
+        while 0 <= idx && idx < self.children.len() {
+            self.focused_child_index = FocusState::ChildFocused(idx);
+            if self.children[idx].borrow_mut().change_focus(dir) {
+                return true;
+            }
+            if idx == 0 && dir == Dir::Negative {
+                return false;
+            }
+            idx = match dir {
+                Dir::Positive => idx + 1,
+                Dir::Negative => idx - 1,
+            }
+        }
+
+        return false;
     }
 }
 

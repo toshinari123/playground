@@ -4,6 +4,7 @@ pub mod counter;
 pub mod delayed;
 pub mod download;
 pub mod fast_counter;
+pub mod focus_root;
 pub mod number;
 pub mod row;
 pub mod scrollable;
@@ -23,6 +24,7 @@ pub mod prelude {
         delayed::delayed,
         download::download,
         fast_counter::fast_counter,
+        focus_root::focus_root,
         number::number,
         row::row,
         scrollable::{scrollable, scrollable_2d, scrollable_h, scrollable_v},
