@@ -10,7 +10,7 @@ fn main() -> Result<()> {
         // 0. type in textfields
         row([
             column([timer(), text_field("").0]),
-            column([text_field("").0, download("https://www.rust-lang.org")]),
+            column([text_field("").0/*, download("https://www.rust-lang.org")*/]),
         ]),
         // 1. `enter` key makes new texts
         todo_list(),
@@ -18,11 +18,15 @@ fn main() -> Result<()> {
         swap(text("/---\\\n|   |\n\\---/"), text_field("").0),
         // 3. variable number of textfields (type a number to change)
         variable_numoftextfields(),
-        // 4. timer
-        timer()
+        // 4. focus test TODO: test more cases creatively
+        focusroot(column([
+            row([text("text1"), text("text2"), text("text3")]),
+            row([text("text4"), text("text5"), text("text6")]),
+            row([text("text7"), text("text8"), text("text9")]),
+        ]))
     ];
     // change number below 
-    render(options[3].clone())
+    render(options[4].clone())
 }
 
 struct AddTask(String);

@@ -4,6 +4,7 @@ pub mod counter;
 pub mod delayed;
 pub mod download;
 pub mod fast_counter;
+pub mod focus_root;
 pub mod number;
 pub mod row;
 pub mod single_char;
@@ -17,8 +18,8 @@ pub mod timer;
 pub mod prelude {
     pub use super::{
         animated_char::animated_char, column::column, counter::counter, delayed::delayed,
-        download::download, fast_counter::fast_counter, number::number, row::row,
-        single_char::single_char, single_line::single_line, text::text, text_cursor::text_cursor,
-        text_field::text_field, timer::timer,
+        download::download, fast_counter::fast_counter, focus_root::focusroot, number::number,
+        row::row, single_char::single_char, single_line::single_line, text::text,
+        text_cursor::text_cursor, text_field::text_field, timer::timer,
     };
 }
