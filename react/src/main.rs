@@ -5,13 +5,19 @@ use react::prelude::*;
 use stdext::prelude::*;
 
 fn main() -> Result<()> {
-    render(row([
-        column([counter(12), text_field("").0]),
-        column([
-            text_field("").0,
-            scrollable_2d(download("https://www.rust-lang.org")),
-        ]),
-    ]))
+    render(
+row([
+            column([counter(12), text_field("").0]),
+            column([
+                text_field("").0,
+                scrollable_2d(download("https://www.rust-lang.org")),
+            ]),
+            stack(vec![
+                text("bottom layer"),
+                text("top layer"),
+            ]),
+        ])
+    )
     // render(todo_list())
     // render(column([
     //     scrollable(Axis::Vertical, column([counter(0), counter(1), counter(2)])),
