@@ -1,0 +1,216 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/kdwk/Projects/personal/playground/react/Cargo.toml
+workspace: /Users/kdwk/Projects/personal/playground/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/kdwk/Projects/personal/playground/editor/Cargo.toml
+workspace: /Users/kdwk/Projects/personal/playground/Cargo.toml
+warning: unused imports: `Display` and `format`
+ --> stdext/src/linked_list.rs:7:23
+  |
+7 | use std::fmt::{Debug, Display, format};
+  |                       ^^^^^^^  ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `Duration` and `Instant`
+  --> stdext/src/quicksort.rs:72:21
+   |
+72 |     use std::time::{Duration, Instant};
+   |                     ^^^^^^^^  ^^^^^^^
+
+warning: unused import: `extend::ext`
+  --> stdext/src/quicksort.rs:74:9
+   |
+74 |     use extend::ext;
+   |         ^^^^^^^^^^^
+
+warning: unused import: `super::prelude::*`
+  --> stdext/src/quicksort.rs:76:9
+   |
+76 |     use super::prelude::*;
+   |         ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Display`
+   --> stdext/src/recipe.rs:298:22
+    |
+298 |         fmt::{Debug, Display},
+    |                      ^^^^^^^
+
+warning: unused import: `Pipe`
+   --> stdext/src/recipe.rs:304:38
+    |
+304 |     use super::{Apply, Discard, Log, Pipe, Recipe, Runnable, identity};
+    |                                      ^^^^
+
+warning: unused variable: `this`
+  --> stdext/src/linked_list.rs:31:51
+   |
+31 |             Empty => replace_with_or_abort(self, |this| cons(elem, Empty)),
+   |                                                   ^^^^ help: if this is intentional, prefix it with an underscore: `_this`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `others`
+   --> stdext/src/linked_list.rs:123:34
+    |
+123 |             ListIter::Cons(elem, others) => {
+    |                                  ^^^^^^ help: if this is intentional, prefix it with an underscore: `_others`
+
+warning: unused variable: `others`
+   --> stdext/src/linked_list.rs:145:37
+    |
+145 |             ListRefIter::Cons(elem, others) => {
+    |                                     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_others`
+
+warning: unused variable: `others`
+   --> stdext/src/linked_list.rs:167:40
+    |
+167 |             ListRefMutIter::Cons(elem, others) => {
+    |                                        ^^^^^^ help: if this is intentional, prefix it with an underscore: `_others`
+
+warning: variable does not need to be mutable
+   --> stdext/src/linked_list.rs:332:32
+    |
+332 |         c.iter_mut().for_each(|mut s| *s += "1");
+    |                                ----^
+    |                                |
+    |                                help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `v`
+  --> stdext/src/quicksort.rs:79:13
+   |
+79 |         let v = vec![9, 3, -1, 0, 3, -56];
+   |             ^ help: if this is intentional, prefix it with an underscore: `_v`
+
+warning: unused variable: `b`
+   --> stdext/src/recipe.rs:379:13
+    |
+379 |         let b = [3.0, 2.18, 3.14, 9.11]
+    |             ^ help: if this is intentional, prefix it with an underscore: `_b`
+
+warning: struct `A` is never constructed
+   --> stdext/src/linked_list.rs:306:12
+    |
+306 |     struct A {
+    |            ^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `new` is never used
+   --> stdext/src/linked_list.rs:311:12
+    |
+310 |     impl A {
+    |     ------ associated function in this implementation
+311 |         fn new() -> Self {
+    |            ^^^
+
+warning: function `add` is never used
+   --> stdext/src/mixture.rs:191:8
+    |
+191 |     fn add<Num: Number>(x: Num, y: Num) -> <Num as Add>::Output {
+    |        ^^^
+
+warning: function `test1` is never used
+   --> stdext/src/mixture.rs:194:8
+    |
+194 |     fn test1() {
+    |        ^^^^^
+
+warning: variant `Rect` is never constructed
+   --> stdext/src/recipe.rs:364:9
+    |
+362 |     enum Shape {
+    |          ----- variant in this enum
+363 |         Circle(f32),
+364 |         Rect(f32, f32),
+    |         ^^^^
+    |
+    = note: `Shape` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: associated function `square` is never used
+   --> stdext/src/recipe.rs:367:12
+    |
+366 |     impl Shape {
+    |     ---------- associated function in this implementation
+367 |         fn square(side: f32) -> Self {
+    |            ^^^^^^
+
+warning: function `test1` is never used
+  --> stdext/src/substr.rs:21:12
+   |
+21 |     pub fn test1() {
+   |            ^^^^^
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> stdext/src/linked_list.rs:71:17
+   |
+71 |     pub fn iter(&self) -> ListRefIter<T> {
+   |                 ^^^^^     ^^^^^^^^^^^^^^ the same lifetime is hidden here
+   |                 |
+   |                 the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+71 |     pub fn iter(&self) -> ListRefIter<'_, T> {
+   |                                       +++
+
+warning: `stdext` (lib) generated 21 warnings (run `cargo fix --lib -p stdext` to apply 8 suggestions)
+   Compiling react v0.1.0 (/Users/kdwk/Projects/personal/playground/react)
+warning: unused import: `Frame`
+ --> react/src/elements/char_element.rs:1:44
+  |
+1 | use crate::prelude::{DisplayList, Element, Frame, Operation, Size};
+  |                                            ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Frame`
+ --> react/src/elements/column_element.rs:1:44
+  |
+1 | use crate::prelude::{DisplayList, Element, Frame, Operation, Point, Size};
+  |                                            ^^^^^
+
+warning: unused import: `std::fmt::Display`
+ --> react/src/frame.rs:1:5
+  |
+1 | use std::fmt::Display;
+  |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `counter`
+ --> react/src/widgets/delayed.rs:6:48
+  |
+6 |     prelude::{Component, Task, Widget, column, counter, text, timer},
+  |                                                ^^^^^^^
+
+warning: method `remove_word_left` is never used
+  --> react/src/widgets/text_field.rs:41:8
+   |
+15 | impl TextField {
+   | -------------- method in this implementation
+...
+41 |     fn remove_word_left(&mut self) {
+   |        ^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `react` (lib) generated 5 warnings (run `cargo fix --lib -p react` to apply 4 suggestions)
+   Compiling editor v0.1.0 (/Users/kdwk/Projects/personal/playground/editor)
+warning: unused imports: `cell::RefCell` and `rc::Rc`
+ --> editor/src/main.rs:1:11
+  |
+1 | use std::{cell::RefCell, rc::Rc};
+  |           ^^^^^^^^^^^^^  ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `editor` (bin "editor") generated 1 warning (run `cargo fix --bin "editor"` to apply 1 suggestion)
+    Finished `release` profile [optimized + debuginfo] target(s) in 2.31s
+     Running `/Users/kdwk/Projects/personal/playground/target/release/editor text.txt`
+
+thread 'main' (4452240) panicked at /Users/kdwk/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/time.rs:1165:31:
+overflow when subtracting durations
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

@@ -1,8 +1,8 @@
-use crate::{component::prelude::*, message::MessageFlow::Propagate, widget::prelude::*};
+use crate::{
+    component::prelude::*, message::MessageFlow::Propagate, prelude::text, widget::prelude::*,
+};
 use crossterm::event::{KeyCode, KeyEvent};
 use stdext::prelude::*;
-
-use crate::widgets::number::number;
 
 pub fn counter(i: i32) -> Component {
     Widget::stateful(
@@ -15,6 +15,6 @@ pub fn counter(i: i32) -> Component {
             });
             Propagate
         },
-        |state| number(*state),
+        |i| text(*i),
     )
 }

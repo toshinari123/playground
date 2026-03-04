@@ -6,7 +6,7 @@ pub mod prelude {
     pub use super::{Direction, DisplayList, Operation, Point, Size, Vec2};
 }
 
-#[derive(Debug, Clone, Copy, Hash, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Hash, Default, PartialEq, Eq)]
 pub struct Vec2 {
     pub x: isize,
     pub y: isize,
@@ -78,7 +78,7 @@ impl Neg for Vec2 {
 pub type Point = Vec2;
 pub type Size = Vec2;
 
-#[derive(Debug, Clone, Copy, Hash)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Direction {
     Start,
     End,
@@ -86,9 +86,10 @@ pub enum Direction {
     Down,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Operation {
     PutChar(char),
+    PutToken(Token),
     DrawCursor,
     MoveTo(Point),
     Move(Direction),
@@ -110,6 +111,18 @@ impl Operation {
                             Token::Char(_) => Token::Char(c),
                             Token::AnnotatedChar(s1, _, s2) => Token::AnnotatedChar(s1, c, s2),
                         };
+                    }
+                }
+            }
+            Operation::PutToken(token) => {
+                let target = *anchor + *offset;
+                if target.y >= 0
+                    && let Some(row) = buffer.get_mut(target.y as usize)
+                {
+                    if target.x >= 0
+                        && let Some(col) = row.get_mut(target.x as usize)
+                    {
+                        *col = token;
                     }
                 }
             }
@@ -145,7 +158,7 @@ impl Operation {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct DisplayList(pub Vec<Operation>);
 
 impl<T: Into<Vec<Operation>>> From<T> for DisplayList {

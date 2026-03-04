@@ -1,14 +1,20 @@
-use std::fmt::Display;
+use crate::prelude::Size;
 
 pub mod prelude {
     pub use super::{Frame, FrameExt};
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 /// All Tokens must take up exactly one space in a terminal
 pub enum Token {
     Char(char),
     AnnotatedChar(&'static str, char, &'static str),
+}
+
+impl Default for Token {
+    fn default() -> Self {
+        Self::Char(' ')
+    }
 }
 
 pub trait TokensExt {
@@ -35,6 +41,7 @@ impl TokensExt for Vec<Token> {
 pub type Frame = Vec<Vec<Token>>;
 
 pub trait FrameExt {
+    fn of_size(size: Size) -> Frame;
     fn height(&self) -> usize;
     fn first_width(&self) -> usize;
     fn max_width(&self) -> usize;
@@ -43,6 +50,9 @@ pub trait FrameExt {
 }
 
 impl FrameExt for Frame {
+    fn of_size(size: Size) -> Frame {
+        vec![vec![Token::default(); size.x.abs() as usize]; size.y.abs() as usize]
+    }
     fn height(&self) -> usize {
         self.len()
     }
