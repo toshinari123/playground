@@ -16,7 +16,7 @@ pub trait _Component: Debug {
     fn id(&self) -> usize;
     fn create_element(&mut self) -> (bool, Box<dyn Element>);
     fn on_message(&mut self, event: &Message);
-    fn change_focus(&mut self, shift: Dir) -> bool;
+    fn change_focus(&mut self, shift: Dir) -> crate::widget::FocusState;
 }
 
 pub type Component = Rc<RefCell<dyn _Component>>;

@@ -65,7 +65,7 @@ pub fn text_field(initial: impl Display) -> (Component, Rc<RefCell<String>>) {
     let len = initial.len();
     let initial = Rc::new(RefCell::new(initial));
     (
-        Widget::stateful(
+        Widget::focusable_stateful(
             TextField {
                 cursor: len,
                 buffer: initial.clone(),

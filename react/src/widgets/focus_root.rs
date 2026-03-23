@@ -10,19 +10,32 @@ use crate::{
 pub fn focus_root(child: Component) -> Component {
     let child_clone = child.clone();
     Widget::stateful_container(
-        (),
+        Option::<Component>::None,
         move |this, msg| {
             switch(msg).case(|event: &KeyEvent| {
-                match (event.modifiers, event.code) {
-                    (KeyModifiers::SHIFT, KeyCode::BackTab) => {
-                        this.children[0].borrow_mut().change_focus(Dir::Negative);
-                        this.set_state(|_| ());
+                match event.code {
+                    // TODO: specific focuschange event (or can even specify which focusroot if theres multiple)
+                    KeyCode::BackTab => {
+                        let result = this.children[0].borrow_mut().change_focus(Dir::Negative);
+                        if let crate::widget::FocusState::ChildFocused { component, .. } = result {
+                            this.state = Some(component);
+                        }
+                        let state_clone = this.state.clone();
+                        this.set_state(|state| *state = state_clone);
                     }
-                    (KeyModifiers::NONE, KeyCode::Tab) => {
-                        this.children[0].borrow_mut().change_focus(Dir::Positive);
-                        this.set_state(|_| ());
+                    KeyCode::Tab => {
+                        let result = this.children[0].borrow_mut().change_focus(Dir::Positive);
+                        if let crate::widget::FocusState::ChildFocused { component, .. } = result {
+                            this.state = Some(component);
+                        }
+                        let state_clone = this.state.clone();
+                        this.set_state(|state| *state = state_clone);
                     }
-                    _ => {}
+                    _ => {
+                        if let Some(ref focused) = this.state {
+                            focused.borrow_mut().on_message(msg);
+                        }
+                    }
                 }
             });
             MessageFlow::Intercept

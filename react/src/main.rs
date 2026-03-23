@@ -10,7 +10,10 @@ fn main() -> Result<()> {
         // 0. type in textfields
         row([
             column([timer(), text_field("").0]),
-            column([text_field("").0/*, download("https://www.rust-lang.org")*/]),
+            column([
+                text_field("").0,
+                scrollable_2d(download("https://www.rust-lang.org")),
+            ]),
         ]),
         // 1. `enter` key makes new texts
         todo_list(),
@@ -18,15 +21,30 @@ fn main() -> Result<()> {
         swap(text("/---\\\n|   |\n\\---/"), text_field("").0),
         // 3. variable number of textfields (type a number to change)
         variable_numoftextfields(),
-        // 4. focus test TODO: test more cases creatively
+        // 4. focus demo
         focus_root(column([
-            row([text("text1"), text("text2"), text("text3")]),
-            row([text("text4"), text("text5"), text("text6")]),
-            row([text("text7"), text("text8"), text("text9")]),
-        ]))
+            row([focusable_centered_text("text1"), focusable_centered_text("text2"), focusable_centered_text("text3")]),
+            row([focusable_centered_text("text4"), focusable_centered_text("text6")]),
+            row([focusable_centered_text("text7"), focusable_centered_text("text8"), focusable_centered_text("text9")]),
+        ])),
+        // 5. Only text field is focusable_stateful for now
+        focus_root(column([
+            animated_char(),
+            counter(234),
+            scrollable(Axis::Vertical, text("a\naa\naaa\naaaa\naaaa\naaaaaaaa\naaaaaa\nasdfsa\naa\naa\naa\naa\nasdfa\naa\naa\naeirjee")),
+            text_field("text field").0,
+            timer(),
+        ])),
+        // 6. works
+        focus_root(column([
+            text_field("text field 1").0,
+            text_field("text field 2").0,
+            text_field("text field 3").0,
+            text_field("text field 4").0,
+        ])),
     ];
     // change number below 
-    render(options[4].clone())
+    render(options[6].clone())
 }
 
 struct AddTask(String);

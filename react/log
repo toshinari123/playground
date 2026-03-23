@@ -1,0 +1,291 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/toshinari/Projects/fyp/rust-playground/react/Cargo.toml
+workspace: /home/toshinari/Projects/fyp/rust-playground/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/toshinari/Projects/fyp/rust-playground/editor/Cargo.toml
+workspace: /home/toshinari/Projects/fyp/rust-playground/Cargo.toml
+warning: unused imports: `Display` and `format`
+ --> stdext/src/linked_list.rs:7:23
+  |
+7 | use std::fmt::{Debug, Display, format};
+  |                       ^^^^^^^  ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `Duration` and `Instant`
+  --> stdext/src/quicksort.rs:72:21
+   |
+72 |     use std::time::{Duration, Instant};
+   |                     ^^^^^^^^  ^^^^^^^
+
+warning: unused import: `extend::ext`
+  --> stdext/src/quicksort.rs:74:9
+   |
+74 |     use extend::ext;
+   |         ^^^^^^^^^^^
+
+warning: unused import: `super::prelude::*`
+  --> stdext/src/quicksort.rs:76:9
+   |
+76 |     use super::prelude::*;
+   |         ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Display`
+   --> stdext/src/recipe.rs:298:22
+    |
+298 |         fmt::{Debug, Display},
+    |                      ^^^^^^^
+
+warning: unused import: `Pipe`
+   --> stdext/src/recipe.rs:304:38
+    |
+304 |     use super::{Apply, Discard, Log, Pipe, Recipe, Runnable, identity};
+    |                                      ^^^^
+
+warning: unused variable: `this`
+  --> stdext/src/linked_list.rs:31:51
+   |
+31 |             Empty => replace_with_or_abort(self, |this| cons(elem, Empty)),
+   |                                                   ^^^^ help: if this is intentional, prefix it with an underscore: `_this`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `others`
+   --> stdext/src/linked_list.rs:123:34
+    |
+123 |             ListIter::Cons(elem, others) => {
+    |                                  ^^^^^^ help: if this is intentional, prefix it with an underscore: `_others`
+
+warning: unused variable: `others`
+   --> stdext/src/linked_list.rs:145:37
+    |
+145 |             ListRefIter::Cons(elem, others) => {
+    |                                     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_others`
+
+warning: unused variable: `others`
+   --> stdext/src/linked_list.rs:167:40
+    |
+167 |             ListRefMutIter::Cons(elem, others) => {
+    |                                        ^^^^^^ help: if this is intentional, prefix it with an underscore: `_others`
+
+warning: variable does not need to be mutable
+   --> stdext/src/linked_list.rs:332:32
+    |
+332 |         c.iter_mut().for_each(|mut s| *s += "1");
+    |                                ----^
+    |                                |
+    |                                help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `v`
+  --> stdext/src/quicksort.rs:79:13
+   |
+79 |         let v = vec![9, 3, -1, 0, 3, -56];
+   |             ^ help: if this is intentional, prefix it with an underscore: `_v`
+
+warning: unused variable: `b`
+   --> stdext/src/recipe.rs:379:13
+    |
+379 |         let b = [3.0, 2.18, 3.14, 9.11]
+    |             ^ help: if this is intentional, prefix it with an underscore: `_b`
+
+warning: struct `A` is never constructed
+   --> stdext/src/linked_list.rs:306:12
+    |
+306 |     struct A {
+    |            ^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `new` is never used
+   --> stdext/src/linked_list.rs:311:12
+    |
+310 |     impl A {
+    |     ------ associated function in this implementation
+311 |         fn new() -> Self {
+    |            ^^^
+
+warning: function `add` is never used
+   --> stdext/src/mixture.rs:191:8
+    |
+191 |     fn add<Num: Number>(x: Num, y: Num) -> <Num as Add>::Output {
+    |        ^^^
+
+warning: function `test1` is never used
+   --> stdext/src/mixture.rs:194:8
+    |
+194 |     fn test1() {
+    |        ^^^^^
+
+warning: variant `Rect` is never constructed
+   --> stdext/src/recipe.rs:364:9
+    |
+362 |     enum Shape {
+    |          ----- variant in this enum
+363 |         Circle(f32),
+364 |         Rect(f32, f32),
+    |         ^^^^
+    |
+    = note: `Shape` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: associated function `square` is never used
+   --> stdext/src/recipe.rs:367:12
+    |
+366 |     impl Shape {
+    |     ---------- associated function in this implementation
+367 |         fn square(side: f32) -> Self {
+    |            ^^^^^^
+
+warning: function `test1` is never used
+  --> stdext/src/substr.rs:21:12
+   |
+21 |     pub fn test1() {
+   |            ^^^^^
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> stdext/src/linked_list.rs:71:17
+   |
+71 |     pub fn iter(&self) -> ListRefIter<T> {
+   |                 ^^^^^     ^^^^^^^^^^^^^^ the same lifetime is hidden here
+   |                 |
+   |                 the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+71 |     pub fn iter(&self) -> ListRefIter<'_, T> {
+   |                                       +++
+
+warning: `stdext` (lib) generated 21 warnings (run `cargo fix --lib -p stdext` to apply 14 suggestions)
+warning: unused import: `Frame`
+ --> react/src/elements/char_element.rs:1:44
+  |
+1 | use crate::prelude::{DisplayList, Element, Frame, Operation, Size};
+  |                                            ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Frame`
+ --> react/src/elements/column_element.rs:1:44
+  |
+1 | use crate::prelude::{DisplayList, Element, Frame, Operation, Point, Size};
+  |                                            ^^^^^
+
+warning: unused import: `counter`
+ --> react/src/widgets/delayed.rs:6:48
+  |
+6 |     prelude::{Component, Task, Widget, column, counter, text, timer},
+  |                                                ^^^^^^^
+
+warning: unused variable: `old_id`
+   --> react/src/widget.rs:308:17
+    |
+308 |             let old_id = old_children[i].borrow().id();
+    |                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_old_id`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `new_id`
+   --> react/src/widget.rs:309:17
+    |
+309 |             let new_id = new_child.borrow().id();
+    |                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_new_id`
+
+warning: unused variable: `size`
+   --> react/src/widget.rs:412:20
+    |
+412 | ...elf, size: crate::prelude::Size, display_list: &mut crate::prelude::DisplayList) {}
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_size`
+
+warning: unused variable: `display_list`
+   --> react/src/widget.rs:412:48
+    |
+412 | ... size: crate::prelude::Size, display_list: &mut crate::prelude::DisplayList) {}
+    |                                 ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_display_list`
+
+warning: unused variable: `this`
+  --> react/src/widgets/focus_root.rs:31:10
+   |
+31 |         |this, mut children_elem| {
+   |          ^^^^ help: if this is intentional, prefix it with an underscore: `_this`
+
+warning: method `remove_word_left` is never used
+  --> react/src/widgets/text_field.rs:42:8
+   |
+15 | impl TextField {
+   | -------------- method in this implementation
+...
+42 |     fn remove_word_left(&mut self) {
+   |        ^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: comparison is useless due to type limits
+   --> react/src/widget.rs:455:15
+    |
+455 |         while 0 <= idx && idx < self.children.len() {
+    |               ^^^^^^^^
+    |
+    = note: `#[warn(unused_comparisons)]` on by default
+
+warning: `react` (lib) generated 10 warnings (run `cargo fix --lib -p react` to apply 8 suggestions)
+   Compiling react v0.1.0 (/home/toshinari/Projects/fyp/rust-playground/react)
+warning: unused variable: `i`
+   --> react/src/main.rs:170:17
+    |
+170 |             for i in 1..=*numtextfields {
+    |                 ^ help: if this is intentional, prefix it with an underscore: `_i`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `react` (bin "react") generated 1 warning (run `cargo fix --bin "react" -p react` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.33s
+     Running `/home/toshinari/Projects/fyp/rust-playground/target/debug/react`
+
+thread 'tokio-runtime-worker' (1876635) panicked at /home/toshinari/Projects/fyp/rust-playground/react/src/widgets/download.rs:11:18:
+called `Result::unwrap()` on an `Err` value: reqwest::Error { kind: Request, url: "https://www.rust-lang.org/", source: hyper_util::client::legacy::Error(Connect, ConnectError("tcp connect error", [2606:50c0:8003::153]:443, Os { code: 101, kind: NetworkUnreachable, message: "Network is unreachable" })) }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+change_focus entered: 33, is_focusable: false, numchild: 5
+change_focus entered: 27, is_focusable: false, numchild: 1
+change_focus entered: 50, is_focusable: false, numchild: 2
+change_focus entered: 48, is_focusable: false, numchild: 0
+change_focus entered: 49, is_focusable: false, numchild: 0
+change_focus entered: 28, is_focusable: false, numchild: 1
+change_focus entered: 51, is_focusable: false, numchild: 0
+change_focus entered: 30, is_focusable: false, numchild: 0
+change_focus entered: 31, is_focusable: true, numchild: 1
+change_focus entered: 33, is_focusable: false, numchild: 5
+change_focus entered: 31, is_focusable: true, numchild: 1
+change_focus entered: 52, is_focusable: false, numchild: 0
+change_focus entered: 32, is_focusable: false, numchild: 1
+change_focus entered: 53, is_focusable: false, numchild: 0
+change_focus entered: 33, is_focusable: false, numchild: 5
+change_focus entered: 27, is_focusable: false, numchild: 1
+change_focus entered: 50, is_focusable: false, numchild: 2
+change_focus entered: 48, is_focusable: false, numchild: 0
+change_focus entered: 49, is_focusable: false, numchild: 0
+change_focus entered: 28, is_focusable: false, numchild: 1
+change_focus entered: 51, is_focusable: false, numchild: 0
+change_focus entered: 30, is_focusable: false, numchild: 0
+change_focus entered: 31, is_focusable: true, numchild: 1
+change_focus entered: 33, is_focusable: false, numchild: 5
+change_focus entered: 31, is_focusable: true, numchild: 1
+change_focus entered: 52, is_focusable: false, numchild: 0
+change_focus entered: 32, is_focusable: false, numchild: 1
+change_focus entered: 53, is_focusable: false, numchild: 0
+change_focus entered: 33, is_focusable: false, numchild: 5
+change_focus entered: 27, is_focusable: false, numchild: 1
+change_focus entered: 50, is_focusable: false, numchild: 2
+change_focus entered: 48, is_focusable: false, numchild: 0
+change_focus entered: 49, is_focusable: false, numchild: 0
+change_focus entered: 28, is_focusable: false, numchild: 1
+change_focus entered: 51, is_focusable: false, numchild: 0
+change_focus entered: 30, is_focusable: false, numchild: 0
+change_focus entered: 31, is_focusable: true, numchild: 1
+change_focus entered: 33, is_focusable: false, numchild: 5
+change_focus entered: 31, is_focusable: true, numchild: 1
+change_focus entered: 52, is_focusable: false, numchild: 0
+change_focus entered: 32, is_focusable: false, numchild: 1
+change_focus entered: 53, is_focusable: false, numchild: 0
