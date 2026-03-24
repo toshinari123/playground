@@ -294,46 +294,23 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
 }
 
 /// Reconciliation algorithm for widget children using Vec
-/// Returns (did_rebuild, updated_children)
-fn reconcile_children_vec(
+fn reconcile_children_vec_in_place(
     old_children: &mut Vec<Component>,
     new_children: Vec<Component>,
-) -> (bool, Vec<Component>) {
+) -> bool {
     let mut did_rebuild = false;
-    let mut updated_children = Vec::with_capacity(new_children.len());
-    
-    for (i, new_child) in new_children.into_iter().enumerate() {
-        if i < old_children.len() {
-            // Compare IDs at same index
-            let old_id = old_children[i].borrow().id();
-            let new_id = new_child.borrow().id();
-            
-            //if old_id == new_id {
-                // Same component, reuse it
-                updated_children.push(old_children[i].clone());
-            //} else {
-                // Different component, replace it
-            //    did_rebuild = true;
-            //    updated_children.push(new_child);
-            //}
-        } else {
-            // New child beyond current length
-            did_rebuild = true;
-            updated_children.push(new_child);
-        }
-    }
-    
-    // If old children had more elements than new children, we need to rebuild
-    if old_children.len() > updated_children.len() {
+    if old_children.len() < new_children.len() {
         did_rebuild = true;
-        // Truncate old_children to match new length
-        old_children.truncate(updated_children.len());
-    }
-    
-    // Replace old children with updated ones
-    *old_children = updated_children.clone();
-    
-    (did_rebuild, updated_children)
+        for i in old_children.len()..new_children.len() {
+            old_children.push(new_children[i].clone());
+        }
+        //*old_children = new_children.clone();
+    } else if old_children.len() > new_children.len() {
+        did_rebuild = true;
+        old_children.truncate(new_children.len());
+        //*old_children = new_children.clone();
+    } 
+    did_rebuild
 }
 
 use crate::elements::box_wrapping_element::BoxWrappingElement;
@@ -341,15 +318,7 @@ use crate::elements::box_wrapping_element::BoxWrappingElement;
 fn create_child_always_replace<T: 'static>(this: &mut Widget<T>) -> (bool, Box<dyn Element>) {
     let (did_build, new_children) = this._build();
     let mut final_did_rebuild = did_build;
-    
-    // Reconcile children
-    //let (did_reconcile, reconciled_children) = reconcile_children_vec(
-    //    &mut this.children,
-    //    new_children,
-    //);
-    
     this.children = new_children;
-    //this.children = vec![];
     
     let element = match this.children.first() {
         Some(child) => {
@@ -378,13 +347,10 @@ where
         let (did_build, new_children) = this._build();
         
         // Reconcile children
-        let (did_reconcile, reconciled_children) = reconcile_children_vec(
+        let did_reconcile = reconcile_children_vec_in_place(
             &mut this.children,
             new_children,
         );
-        
-        // Update widget's children
-        this.children = reconciled_children;
         
         // Create elements for all children
         let mut child_elements = Vec::new();
@@ -429,7 +395,7 @@ impl<State> _Component for Widget<State> {
     }
     
     fn change_focus(&mut self, dir: Dir) -> FocusState {
-        eprintln!("change_focus entered: {}, is_focusable: {}, numchild: {}", self.id, self.is_focusable, self.children.len());
+        // eprintln!("change_focus entered: {}, is_focusable: {}, numchild: {}", self.id, self.is_focusable, self.children.len());
         if self.is_focusable && matches!(self.focused_child_index, FocusState::NotFocused) {
             self.focused_child_index = FocusState::SelfFocused;
             return FocusState::SelfFocused;
