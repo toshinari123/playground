@@ -2,9 +2,9 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use stdext::prelude::switch;
 
 use crate::{
-    component::{Component, Dir},
+    component::{_Component, Component, Dir},
     message::MessageFlow,
-    widget::{Widget, MessageToFocused},
+    widget::{Widget, MessageToFocused, FocusState},
 };
 
 pub fn focus_root(child: Component) -> Component {
@@ -14,11 +14,17 @@ pub fn focus_root(child: Component) -> Component {
         move |this, msg| {
             switch(msg).case(|event: &KeyEvent| {
                 match event.code {
-                    // TODO: specific focuschange event (or can even specify which focusroot if theres multiple)
-                    KeyCode::BackTab => _ = this.children[0].borrow_mut().change_focus(Dir::Negative),
-                    KeyCode::Tab => _ = this.children[0].borrow_mut().change_focus(Dir::Positive),
+                    KeyCode::BackTab => {
+                        this.change_focus(Dir::Negative);
+                        if matches!(this.focused_child_index, FocusState::NotFocused) { this.change_focus(Dir::Negative); }
+                        this.mark_needs_rebuild();
+                    },
+                    KeyCode::Tab => {
+                        this.change_focus(Dir::Positive);
+                        if matches!(this.focused_child_index, FocusState::NotFocused) { this.change_focus(Dir::Positive); }
+                        this.mark_needs_rebuild();
+                    },
                     _ => {
-                        // Send FocusWrapped message to child
                         let wrapped = MessageToFocused {
                             internal: stdext::prelude::any(event.clone()),
                         };

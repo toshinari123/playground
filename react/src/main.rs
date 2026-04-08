@@ -35,7 +35,7 @@ fn main() -> Result<()> {
             text_field("text field").0,
             timer(),
         ])),
-        // 6. works
+        // 6. works (visually will break if overflow)
         focus_root(column([
             text_field("text field 1").0,
             text_field("text field 2").0,
@@ -44,7 +44,7 @@ fn main() -> Result<()> {
         ])),
     ];
     // change number below 
-    render(options[4].clone())
+    render(options[6].clone())
 }
 
 struct AddTask(String);
