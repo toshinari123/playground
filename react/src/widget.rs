@@ -19,8 +19,13 @@ pub mod prelude {
 #[derive(Debug)]
 pub enum FocusState {
     NotFocused,
-    ChildFocused { index: usize, component: Component },
+    ChildFocused { index: usize },
     SelfFocused,
+}
+
+#[derive(Debug)]
+pub struct MessageToFocused {
+    pub internal: Message<'static>,
 }
 
 thread_local! {
@@ -73,14 +78,13 @@ where
             children: Vec::new(),
             needs_rebuild: true,
             builder: Box::new(move |state| vec![builder(state)]),
-            on_message: Rc::new(move |this, msg| {
+            on_message: Rc::new(handle_message_to_focused(move |this, msg| {
                 if let Propagate = on_message(this, msg) {
-                    // Propagate to all children
                     for child in &this.children {
                         child.borrow_mut().on_message(msg);
                     }
                 }
-            }),
+            })),
             create_element: Rc::new(create_child_always_replace),
             focused_child_index: FocusState::NotFocused,
             is_focusable: false,
@@ -102,14 +106,13 @@ where
             children: Vec::new(),
             needs_rebuild: true,
             builder: Box::new(move |state| vec![builder(state)]),
-            on_message: Rc::new(move |this, msg| {
+            on_message: Rc::new(handle_message_to_focused(move |this, msg| {
                 if let Propagate = on_message(this, msg) {
-                    // Propagate to all children
                     for child in &this.children {
                         child.borrow_mut().on_message(msg);
                     }
                 }
-            }),
+            })),
             create_element: Rc::new(create_child_always_replace),
             focused_child_index: FocusState::NotFocused,
             is_focusable: true,
@@ -132,14 +135,13 @@ where
             children: Vec::new(),
             needs_rebuild: true,
             builder: Box::new(builder),
-            on_message: Rc::new(move |this, msg| {
+            on_message: Rc::new(handle_message_to_focused(move |this, msg| {
                 if let Propagate = on_message(this, msg) {
-                    // Propagate to all children
                     for child in &this.children {
                         child.borrow_mut().on_message(msg);
                     }
                 }
-            }),
+            })),
             create_element: Rc::new(create_children(create_element)),
             focused_child_index: FocusState::NotFocused,
             is_focusable: false,
@@ -161,7 +163,7 @@ where
             children: Vec::new(),
             needs_rebuild: true,
             builder: Box::new(|_| Vec::new()),
-            on_message: Rc::new(on_message),
+            on_message: Rc::new(handle_message_to_focused(on_message)),
             create_element: Rc::new(create_element),
             focused_child_index: FocusState::NotFocused,
             is_focusable: false,
@@ -183,7 +185,7 @@ where
             children: Vec::new(),
             needs_rebuild: true,
             builder: Box::new(|_| Vec::new()),
-            on_message: Rc::new(on_message),
+            on_message: Rc::new(handle_message_to_focused(on_message)),
             create_element: Rc::new(create_element),
             focused_child_index: FocusState::NotFocused,
             is_focusable: true,
@@ -232,19 +234,18 @@ impl<T: 'static + Send + Sync> Widget<Task<T>> {
             children: Vec::new(),
             needs_rebuild: true,
             builder: Box::new(move |state| vec![builder(state)]),
-            on_message: Rc::new(move |this, msg| {
+            on_message: Rc::new(handle_message_to_focused(move |this: &mut Self, msg| {
                 switch(msg).case(|&Tick(_)| {
                     if this.state.check() {
                         this.set_state(|_| {});
                     }
                 });
                 if let Propagate = on_message(this, msg) {
-                    // Propagate to all children
                     for child in &this.children {
                         child.borrow_mut().on_message(msg);
                     }
                 }
-            }),
+            })),
             create_element: Rc::new(create_child_always_replace),
             focused_child_index: FocusState::NotFocused,
             is_focusable: false,
@@ -273,19 +274,18 @@ impl<T: 'static + Send + Sync, TaskRet: Send + Sync + 'static> Widget<Stream<T, 
             children: Vec::new(),
             needs_rebuild: true,
             builder: Box::new(move |state| vec![builder(state)]),
-            on_message: Rc::new(move |this, msg| {
+            on_message: Rc::new(handle_message_to_focused(move |this: &mut Self, msg| {
                 switch(msg).case(|&Tick(_)| {
                     if this.state.check() {
                         this.set_state(|_| {});
                     }
                 });
                 if let Propagate = on_message(this, msg) {
-                    // Propagate to all children
                     for child in &this.children {
                         child.borrow_mut().on_message(msg);
                     }
                 }
-            }),
+            })),
             create_element: Rc::new(create_child_always_replace),
             focused_child_index: FocusState::NotFocused,
             is_focusable: false,
@@ -320,6 +320,7 @@ fn create_child_always_replace<T: 'static>(this: &mut Widget<T>) -> (bool, Box<d
     let mut final_did_rebuild = did_build;
     this.children = new_children;
     
+    // TODO: move styling logic out so user can customize it
     let element = match this.children.first() {
         Some(child) => {
             let (child_did_rebuild, child_element) = child.borrow_mut().create_element();
@@ -423,19 +424,16 @@ impl<State> _Component for Widget<State> {
                 FocusState::SelfFocused => {
                     self.focused_child_index = FocusState::ChildFocused {
                         index: idx,
-                        component: self.children[idx].clone()
                     };
                     return FocusState::ChildFocused {
                         index: idx,
-                        component: self.children[idx].clone()
                     };
                 }
-                FocusState::ChildFocused { index: child_idx, component } => {
+                FocusState::ChildFocused { index: child_idx } => {
                     self.focused_child_index = FocusState::ChildFocused {
                         index: idx,
-                        component: self.children[idx].clone()
                     };
-                    return FocusState::ChildFocused { index: child_idx, component };
+                    return FocusState::ChildFocused { index: child_idx };
                 }
                 FocusState::NotFocused => ()
             }
@@ -453,7 +451,34 @@ impl<State> _Component for Widget<State> {
     }
 }
 
-pub fn propagate(this: &mut Widget<Vec<Component>>, msg: &Message) {
+fn handle_message_to_focused<State>(
+    on_message: impl Fn(&mut Widget<State>, &Message) + 'static,
+) -> impl Fn(&mut Widget<State>, &Message) + 'static {
+    move |this, msg| {
+        let mut handled = false;
+        switch(msg).case(|wrapped: &MessageToFocused| {
+            handled = true;
+            match this.focused_child_index {
+                FocusState::SelfFocused => {
+                    on_message(this, &wrapped.internal);
+                }
+                FocusState::ChildFocused { index } => {
+                    if index < this.children.len() {
+                        this.children[index].borrow_mut().on_message(msg);
+                    } else {
+                        eprintln!("error focused index out of range"); //TODO: better debug system
+                    }
+                }
+                FocusState::NotFocused => {}
+            }
+        });
+        if !handled {
+            on_message(this, msg);
+        }
+    }
+}
+
+pub fn propagate<State>(this: &mut Widget<State>, msg: &Message) {
     this.children
         .iter()
         .for_each(|child| child.borrow_mut().on_message(msg));
