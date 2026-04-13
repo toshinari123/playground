@@ -44,7 +44,7 @@ fn main() -> Result<()> {
         ])),
     ];
     // change number below 
-    render(options[6].clone())
+    render(options[5].clone())
 }
 
 struct AddTask(String);

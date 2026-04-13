@@ -12,7 +12,9 @@ pub fn focus_root(child: Component) -> Component {
     Widget::stateful_container(
         (),
         move |this, msg| {
+            let mut iskey = false;
             switch(msg).case(|event: &KeyEvent| {
+                iskey = true;
                 match event.code {
                     KeyCode::BackTab => {
                         this.change_focus(Dir::Negative);
@@ -32,7 +34,7 @@ pub fn focus_root(child: Component) -> Component {
                     }
                 }
             });
-            MessageFlow::Intercept
+            if iskey { MessageFlow::Intercept } else { MessageFlow::Propagate }
         },
         move |_| vec![child_clone.clone()],
         |this, mut children_elem| {
