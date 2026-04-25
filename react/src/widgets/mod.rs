@@ -1,3 +1,5 @@
+pub mod adjustable_column;
+pub mod adjustable_row;
 pub mod animated_char;
 pub mod column;
 pub mod counter;
@@ -17,6 +19,8 @@ pub mod timer;
 
 pub mod prelude {
     pub use super::{
+        adjustable_column::adjustable_column,
+        adjustable_row::adjustable_row,
         animated_char::animated_char,
         column::column,
         counter::counter,

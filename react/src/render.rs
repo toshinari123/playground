@@ -2,7 +2,7 @@ use crate::{
     component::prelude::*,
     frame::{Token, TokensExt},
     message::{handle_messages, send},
-    prelude::{DisplayList, Element, Frame, FrameExt, Size},
+    prelude::{DisplayList, Element, Frame, FrameExt, Pixel, Constraint2},
 };
 use std::{
     io::{self, Write},
@@ -55,9 +55,9 @@ fn setup() -> (
             let (cols, rows) = crossterm::terminal::size()?;
             let mut display_list = DisplayList::default();
             element.draw(
-                Size {
-                    x: cols as isize,
-                    y: rows as isize,
+                Constraint2 {
+                    x: Some(Pixel(cols as isize)),
+                    y: Some(Pixel(rows as isize)),
                 },
                 &mut display_list,
             );
