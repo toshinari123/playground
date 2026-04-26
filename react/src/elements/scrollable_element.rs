@@ -1,4 +1,7 @@
-use crate::prelude::{DisplayList, Element, Frame, FrameExt, Size, Vec2, draw_frame_portion};
+use crate::{
+    prelude::{Constraint2, DisplayList, Element, Frame, FrameExt, Size, Vec2, draw_frame_portion},
+    utils::OptionConstraintExt,
+};
 
 pub mod prelude {
     pub use super::ScrollableElement;
@@ -10,8 +13,14 @@ pub struct ScrollableElement {
 }
 
 impl Element for ScrollableElement {
-    fn draw(&self, constraint: Size, display_list: &mut DisplayList) {
-        let mut child_frame = Frame::of_size(constraint);
+    fn propose_size(&self, proposed_constraints: Constraint2) -> Constraint2 {
+        self.child.propose_size(proposed_constraints)
+    }
+    fn draw(&self, constraint: Constraint2, display_list: &mut DisplayList) {
+        let mut child_frame = Frame::of_size(Size {
+            x: constraint.x.to_pixel(),
+            y: constraint.y.to_pixel(),
+        });
         let mut child_display_list = DisplayList::default();
         self.child.draw(constraint, &mut child_display_list);
         child_display_list.draw_on(&mut child_frame);

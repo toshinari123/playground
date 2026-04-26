@@ -1,7 +1,7 @@
 use std::io::Result;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use react::prelude::*;
+use react::{prelude::*, style::Style};
 use stdext::prelude::*;
 //use crate::elements::column_element::ColumnElement;
 

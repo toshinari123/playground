@@ -12,11 +12,15 @@ pub fn draw_frame_portion(
 ) {
     let height = frame.height();
     let width = frame.first_width();
-    for (y, row) in frame[offset_top_start.y as usize..(height - offset_bottom_end.y as usize)]
+    let start_y = (offset_top_start.y as usize).min(height);
+    let end_y = (height - offset_bottom_end.y as usize).max(start_y);
+    let start_x = (offset_top_start.x as usize).min(width);
+    let end_x = (width - offset_bottom_end.x as usize).max(start_x);
+    for (y, row) in frame[start_y..end_y]
         .iter()
         .enumerate()
     {
-        for (x, col) in row[offset_top_start.x as usize..(width - offset_bottom_end.y as usize)]
+        for (x, col) in row[start_x..end_x]
             .iter()
             .enumerate()
         {

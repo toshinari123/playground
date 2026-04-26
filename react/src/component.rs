@@ -1,6 +1,6 @@
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
-use crate::{element::Element, prelude::Message};
+use crate::prelude::{Element, Message};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Dir {

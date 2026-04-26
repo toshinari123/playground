@@ -10,22 +10,22 @@ pub fn scrollable(axis: Axis, child: Component) -> Component {
             let axis = this.state.0;
             switch(msg).case(|event: &KeyEvent| match event.code {
                 KeyCode::Up => {
-                    if axis == Axis::Vertical {
+                    if axis == Axis::Y {
                         this.set_state(|(_, offset, _)| offset.y = (offset.y - 1).max(0));
                     }
                 }
                 KeyCode::Down => {
-                    if axis == Axis::Vertical {
+                    if axis == Axis::Y {
                         this.set_state(|(_, offset, _)| offset.y += 1);
                     }
                 }
                 KeyCode::Left => {
-                    if axis == Axis::Horizontal {
+                    if axis == Axis::X {
                         this.set_state(|(_, offset, _)| offset.x = (offset.x - 1).max(0));
                     }
                 }
                 KeyCode::Right => {
-                    if axis == Axis::Horizontal {
+                    if axis == Axis::X {
                         this.set_state(|(_, offset, _)| offset.x += 1);
                     }
                 }
@@ -52,11 +52,11 @@ pub fn scrollable(axis: Axis, child: Component) -> Component {
 }
 
 pub fn scrollable_h(child: Component) -> Component {
-    scrollable(Axis::Horizontal, child)
+    scrollable(Axis::X, child)
 }
 
 pub fn scrollable_v(child: Component) -> Component {
-    scrollable(Axis::Vertical, child)
+    scrollable(Axis::Y, child)
 }
 
 pub fn scrollable_2d(child: Component) -> Component {

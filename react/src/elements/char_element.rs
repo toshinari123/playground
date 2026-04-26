@@ -1,4 +1,4 @@
-use crate::prelude::{DisplayList, Element, Frame, Operation, Size};
+use crate::prelude::{Constraint2, DisplayList, Element, Operation, Pixel};
 
 pub mod prelude {
     pub use super::CharElement;
@@ -9,7 +9,16 @@ pub struct CharElement {
 }
 
 impl Element for CharElement {
-    fn draw(&self, _constraint: Size, display_list: &mut DisplayList) {
-        display_list.0.push(Operation::PutChar(self.c));
+    fn propose_size(&self, _: Constraint2) -> Constraint2 {
+        Constraint2 {
+            x: Some(Pixel(1)),
+            y: Some(Pixel(1)),
+        }
+    }
+    fn draw(&self, constraint: Constraint2, display_list: &mut DisplayList) {
+        constraint.is_pixels_or_none_then(|constraint| match (constraint.x, constraint.y) {
+            (Some(Pixel(0)), Some(Pixel(0))) => {}
+            _ => display_list.0.push(Operation::PutChar(self.c)),
+        });
     }
 }

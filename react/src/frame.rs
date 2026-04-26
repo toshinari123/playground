@@ -1,7 +1,7 @@
-use crate::prelude::Size;
+use crate::prelude::{Size};
 
 pub mod prelude {
-    pub use super::{Frame, FrameExt};
+    pub use super::{Frame, FrameExt, Token, TokensExt};
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

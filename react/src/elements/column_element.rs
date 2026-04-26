@@ -1,4 +1,7 @@
-use crate::prelude::{DisplayList, Element, Frame, Operation, Point, Size};
+use crate::prelude::{
+    Axis, Constraint2, ConstraintSum, DisplayList, Element, Operation, OptionConstraintExt, Point,
+    Realize,
+};
 
 pub mod prelude {
     pub use super::ColumnElement;
@@ -9,24 +12,48 @@ pub struct ColumnElement {
 }
 
 impl Element for ColumnElement {
-    fn draw(&self, constraint: Size, display_list: &mut DisplayList) {
-        let child_height = constraint.y as usize / self.children.len();
+    fn propose_size(&self, proposed_constraints: Constraint2) -> Constraint2 {
+        Constraint2 {
+            x: proposed_constraints.x,
+            y: self
+                .children
+                .iter()
+                .map(|child| {
+                    child.propose_size(Constraint2 {
+                        x: proposed_constraints.x,
+                        y: None,
+                    })
+                })
+                .realize(Axis::Y, proposed_constraints.y)
+                .sum_constraint_in_axis(Axis::Y)
+                .pixels,
+        }
+    }
+    fn draw(&self, constraint: Constraint2, display_list: &mut DisplayList) {
         let mut y_offset = 0;
-        for child in &self.children {
+        let children_constraints = self
+            .children
+            .iter()
+            .map(|child| {
+                child.propose_size(Constraint2 {
+                    x: constraint.x,
+                    y: None,
+                })
+            })
+            .realize(Axis::Y, constraint.y);
+        for (child, child_constraint) in self.children.iter().zip(children_constraints) {
+            let child_size = Constraint2 {
+                x: constraint.x,
+                y: child_constraint.y,
+            };
             let offset = Point {
                 x: 0,
                 y: y_offset as isize,
             };
             display_list.0.push(Operation::SetAnchor(offset));
-            child.draw(
-                Size {
-                    x: constraint.x,
-                    y: child_height as isize,
-                },
-                display_list,
-            );
+            child.draw(child_size, display_list);
             display_list.0.push(Operation::SetAnchor(-offset));
-            y_offset += child_height;
+            y_offset += child_size.y.to_pixel();
         }
     }
 }
